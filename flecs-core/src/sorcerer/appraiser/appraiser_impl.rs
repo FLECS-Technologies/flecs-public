@@ -5,7 +5,6 @@ use crate::jeweler::app::{AppStatus, Token};
 use crate::jeweler::gem::app::App;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::{AppKey, Pouch};
@@ -183,7 +182,6 @@ impl AppRaiser for AppraiserImpl {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        lore: Arc<Lore>,
         manifest: AppManifest,
         config: ConsoleClient,
     ) -> anyhow::Result<()> {
@@ -194,7 +192,6 @@ impl AppRaiser for AppraiserImpl {
             .create_sub_quest("Create app".to_string(), |_quest| {
                 set_manifest_and_desired_or_create_app(
                     vault.clone(),
-                    lore,
                     manifest.clone(),
                     app_key.clone(),
                     AppStatus::Installed,
@@ -233,7 +230,6 @@ impl AppRaiser for AppraiserImpl {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        lore: Arc<Lore>,
         app_keys: Vec<AppKey>,
         config: ConsoleClient,
     ) -> anyhow::Result<()> {
@@ -242,14 +238,13 @@ impl AppRaiser for AppraiserImpl {
         for app_key in app_keys {
             let config = config.clone();
             let vault = vault.clone();
-            let lore = lore.clone();
             keys.push(app_key.clone());
             let result = quest
                 .lock()
                 .await
                 .create_sub_quest(format!("Install app {app_key}"), move |quest| async move {
                     Self::default()
-                        .install_app(quest, vault, lore, app_key, config)
+                        .install_app(quest, vault, app_key, config)
                         .await
                 })
                 .await
@@ -277,7 +272,6 @@ impl AppRaiser for AppraiserImpl {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        lore: Arc<Lore>,
         app_key: AppKey,
         config: ConsoleClient,
     ) -> anyhow::Result<()> {
@@ -290,7 +284,7 @@ impl AppRaiser for AppraiserImpl {
             .await
             .2;
         let manifest = manifest.await?;
-        self.install_app_from_manifest(quest, vault, lore, manifest, config)
+        self.install_app_from_manifest(quest, vault, manifest, config)
             .await
     }
 }
@@ -316,7 +310,6 @@ async fn download_manifest(
 
 async fn set_manifest_and_desired_or_create_app(
     vault: Arc<Vault>,
-    lore: Arc<Lore>,
     manifest: AppManifest,
     app_key: AppKey,
     desired: AppStatus,
@@ -353,7 +346,7 @@ async fn set_manifest_and_desired_or_create_app(
                     }
                 })
                 .collect();
-            let mut app = App::new(app_key, deployments, manifest, lore);
+            let mut app = App::new(app_key, deployments, manifest);
             app.set_desired(desired);
             app_entry.insert(app);
             Ok(())
@@ -454,9 +447,7 @@ pub mod tests {
     use super::*;
     use crate::jeweler::app::AppStatus;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
-    use crate::lore;
     use crate::quest::{Progress, Quest};
-    use crate::relic::var::test::MockVarReader;
     use crate::vault::GrabbedPouches;
     use crate::vault::pouch::Pouch;
     use crate::vault::pouch::app::tests::{
@@ -473,7 +464,6 @@ pub mod tests {
     use mockito::{Mock, ServerGuard};
     use std::collections::HashMap;
     use std::sync::Arc;
-    use testdir::testdir;
 
     async fn token_mock_err(server: &mut ServerGuard, status: usize) -> Mock {
         server
@@ -705,13 +695,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn set_manifest_and_desired_or_create_app_existing() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = no_manifest();
         let key = manifest.key().clone();
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         set_manifest_and_desired_or_create_app(
             vault.clone(),
-            lore,
             manifest.clone(),
             key.clone(),
             AppStatus::Installed,
@@ -730,13 +718,11 @@ pub mod tests {
 
     #[tokio::test]
     async fn set_manifest_and_desired_or_create_app_new() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = no_manifest();
         let key = manifest.key().clone();
         let vault = create_empty_test_vault();
         set_manifest_and_desired_or_create_app(
             vault.clone(),
-            lore,
             manifest.clone(),
             key.clone(),
             AppStatus::NotInstalled,
@@ -791,7 +777,7 @@ pub mod tests {
         deployment
             .expect_install_app()
             .once()
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(
             HashMap::new(),
@@ -867,7 +853,6 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install_token_error() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let key = AppKey {
             name: NO_MANIFEST_APP_NAME.to_string(),
             version: NO_MANIFEST_APP_VERSION.to_string(),
@@ -880,7 +865,7 @@ pub mod tests {
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_app(quest.clone(), vault, lore, key, config)
+                .install_app(quest.clone(), vault, key, config)
                 .await
                 .is_err()
         );
@@ -898,7 +883,6 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let key = AppKey {
             name: NO_MANIFEST_APP_NAME.to_string(),
             version: NO_MANIFEST_APP_VERSION.to_string(),
@@ -919,7 +903,7 @@ pub mod tests {
         deployment
             .expect_install_app()
             .once()
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let manifest_mock = manifest_mock_ok(&mut server, manifest.clone(), &key).await;
@@ -927,7 +911,7 @@ pub mod tests {
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_app(quest.clone(), vault, lore, key, config)
+                .install_app(quest.clone(), vault, key, config)
                 .await
                 .is_ok()
         );
@@ -945,7 +929,6 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_sideload_token_error() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifest = no_manifest();
         let vault = create_empty_test_vault();
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
@@ -953,7 +936,7 @@ pub mod tests {
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_app_from_manifest(quest.clone(), vault, lore, manifest, config)
+                .install_app_from_manifest(quest.clone(), vault, manifest, config)
                 .await
                 .is_err()
         );
@@ -970,7 +953,6 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_sideload() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         let manifest = no_manifest();
         deployment
@@ -979,7 +961,7 @@ pub mod tests {
         deployment
             .expect_install_app()
             .once()
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         deployment
             .expect_is_app_installed()
             .once()
@@ -1002,13 +984,7 @@ pub mod tests {
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_app_from_manifest(
-                    quest.clone(),
-                    vault.clone(),
-                    lore,
-                    manifest.clone(),
-                    config
-                )
+                .install_app_from_manifest(quest.clone(), vault.clone(), manifest.clone(), config)
                 .await
                 .is_ok()
         );
@@ -1043,14 +1019,13 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install_apps_empty() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let vault = create_empty_test_vault();
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let token_mock = token_mock_uncalled(&mut server).await;
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_apps(quest.clone(), vault, lore, Vec::new(), config)
+                .install_apps(quest.clone(), vault, Vec::new(), config)
                 .await
                 .is_ok()
         );
@@ -1067,7 +1042,6 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install_apps_ok() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifests = test_manifests();
         let app_count = manifests.len();
         let mut deployment = MockedDockerDeployment::new();
@@ -1077,7 +1051,7 @@ pub mod tests {
         deployment
             .expect_install_app()
             .times(app_count)
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         deployment
             .expect_is_app_installed()
             .times(app_count)
@@ -1107,7 +1081,7 @@ pub mod tests {
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_apps(quest.clone(), vault.clone(), lore, keys.clone(), config)
+                .install_apps(quest.clone(), vault.clone(), keys.clone(), config)
                 .await
                 .is_ok()
         );
@@ -1153,7 +1127,6 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_install_apps_err() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut manifests = test_manifests().into_iter();
         let failing_manifests: Vec<_> = manifests.by_ref().take(4).collect();
         let installed_manifests: Vec<_> = manifests.collect();
@@ -1166,7 +1139,7 @@ pub mod tests {
         deployment
             .expect_install_app()
             .times(installed_app_count)
-            .returning(|_, _, _, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         deployment
             .expect_is_app_installed()
             .times(installed_app_count)
@@ -1200,7 +1173,7 @@ pub mod tests {
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_apps(quest.clone(), vault.clone(), lore, keys, config)
+                .install_apps(quest.clone(), vault.clone(), keys, config)
                 .await
                 .is_err()
         );

@@ -139,7 +139,6 @@ pub mod tests {
                 &self,
                 quest: SyncQuest,
                 manifest: AppManifest,
-                lore: NetworkLoreRef,
                 token: Option<Token>
             ) -> Result<()>;
             async fn uninstall_app(

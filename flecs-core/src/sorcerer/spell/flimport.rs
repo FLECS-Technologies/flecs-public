@@ -468,7 +468,7 @@ pub async fn import_app(
     let app_path = path.join(format!("{}_{}.json", app_key.name, app_key.version));
     let app = tokio::fs::read(&app_path).await?;
     let app: AppDeserializable = serde_json::from_slice(&app)?;
-    let app = try_create_app(app, &manifests, &deployments, lore.clone())?;
+    let app = try_create_app(app, &manifests, &deployments)?;
     app.import(quest, lore, path).await?;
     Ok(app)
 }
@@ -523,12 +523,7 @@ pub async fn import_legacy_app(
     lore: Arc<Lore>,
     path: PathBuf,
 ) -> Result<App, ImportAppError> {
-    let app = try_create_legacy_app(
-        app_key.clone(),
-        &manifests,
-        default_deployments,
-        lore.clone(),
-    )?;
+    let app = try_create_legacy_app(app_key.clone(), &manifests, default_deployments)?;
     let app_dir = path.join(format!("{}_{}", app_key.name, app_key.version));
     tokio::fs::create_dir_all(&app_dir).await?;
     match app.manifest() {

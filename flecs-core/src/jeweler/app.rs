@@ -1,6 +1,6 @@
 pub use super::Result;
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::lore::{ExportLoreRef, ImportLoreRef, NetworkLoreRef};
+use crate::lore::{ExportLoreRef, ImportLoreRef};
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
 use flecs_console_client::models::{
@@ -36,7 +36,6 @@ pub trait AppDeployment {
         &self,
         quest: SyncQuest,
         manifest: AppManifest,
-        lore: NetworkLoreRef,
         token: Option<Token>,
     ) -> Result<()>;
     async fn uninstall_app(&self, quest: SyncQuest, manifest: AppManifest) -> Result<()>;

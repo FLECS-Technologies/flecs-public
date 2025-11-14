@@ -106,10 +106,7 @@ impl InstanceCommon for ComposeInstance {
     }
 
     async fn status(&self) -> anyhow::Result<InstanceStatus> {
-        let status = self
-            .deployment
-            .instance_status(&self.manifest, self.lore.clone())
-            .await?;
+        let status = self.deployment.instance_status(&self.manifest).await?;
         let status = Self::aggregate_status(status);
         Ok(status)
     }
@@ -124,9 +121,7 @@ impl InstanceCommon for ComposeInstance {
     }
 
     async fn logs(&self) -> anyhow::Result<Logs> {
-        self.deployment
-            .instance_logs(&self.manifest, self.lore.clone())
-            .await
+        self.deployment.instance_logs(&self.manifest).await
     }
 
     async fn import(
@@ -337,7 +332,7 @@ impl ComposeInstance {
             return Ok(());
         }
         self.deployment
-            .start_instance(&self.manifest, self.lore.clone(), &self.workdir())
+            .start_instance(&self.manifest, &self.workdir())
             .await?;
         Ok(())
     }
@@ -349,7 +344,7 @@ impl ComposeInstance {
             return Ok(());
         }
         self.deployment
-            .start_instance(&self.manifest, self.lore.clone(), &self.workdir())
+            .start_instance(&self.manifest, &self.workdir())
             .await?;
         Ok(())
     }
@@ -358,9 +353,7 @@ impl ComposeInstance {
         if self.status().await? == InstanceStatus::Stopped {
             return Ok(());
         }
-        self.deployment
-            .stop_instance(&self.manifest, self.lore.clone())
-            .await?;
+        self.deployment.stop_instance(&self.manifest).await?;
         Ok(())
     }
 
