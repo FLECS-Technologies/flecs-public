@@ -12,7 +12,6 @@ use crate::jeweler::network::{
     CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
-use crate::lore::SPECIAL_CORE_GATEWAY_HOST;
 use crate::lore::{ExportLoreRef, ImportLoreRef, NetworkLoreRef};
 use crate::quest::SyncQuest;
 use crate::relic;
@@ -87,19 +86,6 @@ pub enum ExecuteCompose {
 }
 
 impl ComposeDeploymentImpl {
-    async fn compose(
-        &self,
-        manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
-    ) -> Result<String, ExecuteCompose> {
-        let extra_host = match self.core_default_address(lore).await {
-            Some(ip) => format!("{SPECIAL_CORE_GATEWAY_HOST}:{ip}"),
-            None => format!("{SPECIAL_CORE_GATEWAY_HOST}:host-gateway"),
-        };
-        let compose = manifest.compose_json(vec![extra_host]).await?;
-        Ok(compose)
-    }
-
     fn docker_client(&self) -> anyhow::Result<Arc<Docker>> {
         self.docker_client_with_timeout(Duration::from_secs(120))
     }
@@ -124,12 +110,8 @@ impl ComposeDeploymentImpl {
         self.docker_cli().logout().await
     }
 
-    async fn compose_pull(
-        &self,
-        manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
-    ) -> Result<AppId, ExecuteCompose> {
-        let compose = self.compose(manifest, lore).await?;
+    async fn compose_pull(&self, manifest: &AppManifestMulti) -> Result<AppId, ExecuteCompose> {
+        let compose = manifest.compose_json()?;
         let project_name = manifest.project_name();
         self.docker_cli()
             .compose_pull(&project_name, &compose)
@@ -140,10 +122,9 @@ impl ComposeDeploymentImpl {
     async fn compose_up(
         &self,
         manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
         workdir: &Path,
     ) -> Result<AppId, ExecuteCompose> {
-        let compose = self.compose(manifest, lore).await?;
+        let compose = manifest.compose_json()?;
         let project_name = manifest.project_name();
         self.docker_cli()
             .compose_up(&project_name, workdir, &compose)
@@ -151,12 +132,8 @@ impl ComposeDeploymentImpl {
         Ok(project_name)
     }
 
-    async fn compose_stop(
-        &self,
-        manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
-    ) -> Result<AppId, ExecuteCompose> {
-        let compose = self.compose(manifest, lore).await?;
+    async fn compose_stop(&self, manifest: &AppManifestMulti) -> Result<AppId, ExecuteCompose> {
+        let compose = manifest.compose_json()?;
         let project_name = manifest.project_name();
         self.docker_cli()
             .compose_stop(&project_name, &compose)
@@ -164,12 +141,8 @@ impl ComposeDeploymentImpl {
         Ok(project_name)
     }
 
-    async fn compose_remove(
-        &self,
-        manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
-    ) -> Result<AppId, ExecuteCompose> {
-        let compose = self.compose(manifest, lore).await?;
+    async fn compose_remove(&self, manifest: &AppManifestMulti) -> Result<AppId, ExecuteCompose> {
+        let compose = manifest.compose_json()?;
         let project_name = manifest.project_name();
         self.docker_cli()
             .compose_remove(&project_name, &compose)
@@ -180,9 +153,8 @@ impl ComposeDeploymentImpl {
     async fn compose_container(
         &self,
         manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
     ) -> Result<Vec<String>, ExecuteCompose> {
-        let compose = self.compose(manifest, lore).await?;
+        let compose = manifest.compose_json()?;
         let project_name = manifest.project_name();
         Ok(self
             .docker_cli()
@@ -190,12 +162,8 @@ impl ComposeDeploymentImpl {
             .await?)
     }
 
-    async fn compose_logs(
-        &self,
-        manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
-    ) -> Result<Logs, ExecuteCompose> {
-        let compose = self.compose(manifest, lore).await?;
+    async fn compose_logs(&self, manifest: &AppManifestMulti) -> Result<Logs, ExecuteCompose> {
+        let compose = manifest.compose_json()?;
         let project_name = manifest.project_name();
         let logs = self
             .docker_cli()
@@ -224,29 +192,23 @@ impl ComposeDeployment for ComposeDeploymentImpl {
     async fn start_instance(
         &self,
         manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
         workdir: &Path,
     ) -> Result<(), ExecuteCompose> {
-        self.compose_up(manifest, lore, workdir).await?;
+        self.compose_up(manifest, workdir).await?;
         Ok(())
     }
 
-    async fn stop_instance(
-        &self,
-        manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
-    ) -> Result<(), ExecuteCompose> {
-        self.compose_stop(manifest, lore.clone()).await?;
-        self.compose_remove(manifest, lore).await?;
+    async fn stop_instance(&self, manifest: &AppManifestMulti) -> Result<(), ExecuteCompose> {
+        self.compose_stop(manifest).await?;
+        self.compose_remove(manifest).await?;
         Ok(())
     }
 
     async fn instance_status(
         &self,
         manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
     ) -> anyhow::Result<Vec<InstanceStatus>> {
-        let containers = self.compose_container(manifest, lore).await?;
+        let containers = self.compose_container(manifest).await?;
         let mut status_vec = Vec::with_capacity(containers.len());
         for container in containers {
             let docker_client = self.docker_client()?;
@@ -267,12 +229,8 @@ impl ComposeDeployment for ComposeDeploymentImpl {
         Ok(status_vec)
     }
 
-    async fn instance_logs(
-        &self,
-        manifest: &AppManifestMulti,
-        lore: NetworkLoreRef,
-    ) -> anyhow::Result<Logs> {
-        Ok(self.compose_logs(manifest, lore).await?)
+    async fn instance_logs(&self, manifest: &AppManifestMulti) -> anyhow::Result<Logs> {
+        Ok(self.compose_logs(manifest).await?)
     }
 }
 
@@ -303,7 +261,6 @@ impl AppDeployment for ComposeDeploymentImpl {
         &self,
         _quest: SyncQuest,
         manifest: AppManifest,
-        lore: NetworkLoreRef,
         token: Option<Token>,
     ) -> anyhow::Result<()> {
         let AppManifest::Multi(manifest) = manifest else {
@@ -313,7 +270,7 @@ impl AppDeployment for ComposeDeploymentImpl {
         if let Some(token) = token {
             self.docker_login(token).await?;
         }
-        let pull_result = self.compose_pull(&manifest, lore).await;
+        let pull_result = self.compose_pull(&manifest).await;
         if logout_needed {
             self.docker_logout().await?;
         }

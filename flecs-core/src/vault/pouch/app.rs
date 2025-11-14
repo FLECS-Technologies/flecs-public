@@ -47,7 +47,7 @@ impl AppPouch {
         manifests: &super::manifest::Gems,
         deployments: &super::deployment::Gems,
     ) -> Result<()> {
-        self.apps = Self::create_apps(self.read_apps()?, manifests, deployments, self.lore.clone());
+        self.apps = Self::create_apps(self.read_apps()?, manifests, deployments);
         Ok(())
     }
 
@@ -60,12 +60,11 @@ impl AppPouch {
         apps: Vec<AppDeserializable>,
         manifests: &super::manifest::Gems,
         deployments: &super::deployment::Gems,
-        lore: Arc<Lore>,
     ) -> HashMap<AppKey, App> {
         apps.into_iter()
             .filter_map(|app| {
                 let key = app.key.clone();
-                match try_create_app(app, manifests, deployments, lore.clone()) {
+                match try_create_app(app, manifests, deployments) {
                     Ok(app) => Some((key, app)),
                     Err(e) => {
                         error!("Could not create app {key}: {e}");
@@ -130,7 +129,7 @@ pub mod tests {
             .collect();
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         AppPouch {
-            apps: AppPouch::create_apps(apps, manifests, &deployments, lore.clone()),
+            apps: AppPouch::create_apps(apps, manifests, &deployments),
             lore,
         }
     }
@@ -343,16 +342,9 @@ pub mod tests {
     }
 
     fn create_test_app() -> App {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let manifests = create_test_manifests();
         let deployments = create_test_deployments();
-        try_create_app(
-            create_test_app_deserializable(),
-            &manifests,
-            &deployments,
-            lore,
-        )
-        .unwrap()
+        try_create_app(create_test_app_deserializable(), &manifests, &deployments).unwrap()
     }
 
     fn create_test_app_deserializable() -> AppDeserializable {

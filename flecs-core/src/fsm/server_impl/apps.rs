@@ -99,7 +99,6 @@ impl<
         Ok(super::api::v2::apps::install::post(
             self.vault.clone(),
             self.sorcerers.app_raiser.clone(),
-            self.lore.clone(),
             self.console_client.clone(),
             self.enchantments.quest_master.clone(),
             body,
@@ -117,7 +116,6 @@ impl<
         super::api::v2::apps::sideload::post(
             self.vault.clone(),
             self.sorcerers.app_raiser.clone(),
-            self.lore.clone(),
             self.enchantments.quest_master.clone(),
             self.console_client.clone(),
             body,

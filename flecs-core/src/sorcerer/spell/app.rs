@@ -52,12 +52,9 @@ mod tests {
     use crate::jeweler::gem::app::{App, AppData};
     use crate::jeweler::gem::deployment::Deployment;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
-    use crate::lore;
     use crate::quest::Quest;
-    use crate::relic::var::test::MockVarReader;
     use crate::vault::pouch::manifest::tests::min_app_1_0_0_manifest;
     use crate::vault::tests::create_empty_test_vault;
-    use testdir::testdir;
 
     #[tokio::test]
     async fn uninstall_app_not_found() {
@@ -77,7 +74,6 @@ mod tests {
 
     #[tokio::test]
     async fn uninstall_app_error() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_is_app_installed()
@@ -94,7 +90,7 @@ mod tests {
         let manifest = min_app_1_0_0_manifest();
         let app_data = AppData::new(deployment);
         let key = manifest.key().clone();
-        let mut app = App::new(key.clone(), Vec::new(), manifest, lore);
+        let mut app = App::new(key.clone(), Vec::new(), manifest);
         app.deployments
             .insert("Mocked_deployment".to_string(), app_data);
         let vault = create_empty_test_vault();
@@ -114,7 +110,6 @@ mod tests {
 
     #[tokio::test]
     async fn uninstall_app_ok() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_is_app_installed()
@@ -131,7 +126,7 @@ mod tests {
         let manifest = min_app_1_0_0_manifest();
         let app_data = AppData::new(deployment);
         let key = manifest.key().clone();
-        let mut app = App::new(key.clone(), Vec::new(), manifest, lore);
+        let mut app = App::new(key.clone(), Vec::new(), manifest);
         app.deployments
             .insert("Mocked_deployment".to_string(), app_data);
         let vault = create_empty_test_vault();

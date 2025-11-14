@@ -1146,7 +1146,6 @@ impl AppDeployment for DockerDeploymentImpl {
         &self,
         quest: SyncQuest,
         manifest: AppManifest,
-        _lore: NetworkLoreRef,
         token: Option<Token>,
     ) -> anyhow::Result<()> {
         let AppManifest::Single(manifest) = manifest else {

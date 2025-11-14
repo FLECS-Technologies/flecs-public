@@ -164,7 +164,6 @@ pub async fn read_legacy_apps() -> Result<Vec<app::App>, MigrateError> {
 
 pub async fn migrate_apps(
     vault: Arc<Vault>,
-    lore: Arc<Lore>,
     legacy_apps: Vec<app::App>,
 ) -> Result<(), MigrateError> {
     let mut grabbed_pouches = vault
@@ -203,7 +202,7 @@ pub async fn migrate_apps(
                 (manifest.clone(), default_compose_deployment.clone())
             }
         };
-        let mut app = gem::app::App::new(app.app_key, vec![deployment], manifest, lore.clone());
+        let mut app = gem::app::App::new(app.app_key, vec![deployment], manifest);
         app.set_desired(desired);
         let app_key = app.key.clone();
         if let Some(app) = app_pouch.gems_mut().insert(app.key.clone(), app) {

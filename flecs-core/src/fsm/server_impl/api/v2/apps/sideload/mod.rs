@@ -1,7 +1,6 @@
 use crate::enchantment::quest_master::QuestMaster;
 use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
-use crate::lore::Lore;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::apps::AppsSideloadPostResponse as PostResponse;
@@ -12,7 +11,6 @@ use std::sync::Arc;
 pub async fn post<A: AppRaiser + 'static>(
     vault: Arc<Vault>,
     appraiser: Arc<A>,
-    lore: Arc<Lore>,
     quest_master: QuestMaster,
     console_client: ConsoleClient,
     request: PostRequest,
@@ -42,7 +40,7 @@ pub async fn post<A: AppRaiser + 'static>(
                     format!("Sideloading {}", manifest.key()),
                     move |quest| async move {
                         appraiser
-                            .install_app_from_manifest(quest, vault, lore, manifest, console_client)
+                            .install_app_from_manifest(quest, vault, manifest, console_client)
                             .await
                     },
                 )
