@@ -63,7 +63,7 @@ p,tech.flecs.core.instance_config_set_protocol_ports,/v2/instances/:instance_id/
 p,tech.flecs.core.instance_config_read_protocol_port_range,/v2/instances/:instance_id/config/ports/:transport_protocol/:host_port_range,GET
 p,tech.flecs.core.instance_config_remove_protocol_port_range,/v2/instances/:instance_id/config/ports/:transport_protocol/:host_port_range,DELETE
 p,tech.flecs.core.instance_config_set_protocol_port_range,/v2/instances/:instance_id/config/ports/:transport_protocol/:host_port_range,PUT
-p,tech.flecs.core.access_editor,/v2/instances/:instance_id/editor/:port,GET
+p,*,/v2/instances/:instance_id/editor/:port,GET
 p,tech.flecs.core.read_instance_logs,/v2/instances/:instance_id/logs,GET
 p,tech.flecs.core.start_instance,/v2/instances/:instance_id/start,POST
 p,tech.flecs.core.stop_instance,/v2/instances/:instance_id/stop,POST
@@ -172,7 +172,6 @@ g,tech.flecs.core.operator,tech.flecs.core.list_exports
 g,tech.flecs.core.operator,tech.flecs.core.download_export
 g,tech.flecs.core.operator,tech.flecs.core.read_instances
 g,tech.flecs.core.operator,tech.flecs.core.read_instance
-g,tech.flecs.core.operator,tech.flecs.core.access_editor
 g,tech.flecs.core.operator,tech.flecs.core.read_instance_logs
 g,tech.flecs.core.operator,tech.flecs.core.read_manifests
 g,tech.flecs.core.operator,tech.flecs.core.read_manifest
