@@ -80,6 +80,7 @@ pub trait Floxy: Enchantment {
     fn reload_config(&self) -> crate::Result<()>;
 
     fn clear_server_configs(&self) -> crate::Result<()>;
+    fn clear_instance_configs(&self) -> crate::Result<()>;
 }
 
 #[cfg(test)]
