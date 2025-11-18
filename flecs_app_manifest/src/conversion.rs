@@ -274,6 +274,62 @@ impl TryFrom<&manifest_3_0_0::FlecsAppManifestVolumesItem> for manifest_3_2_0::V
     }
 }
 
+/// In 2.x manifest versions the editor port corresponded to the host port. If you wanted to access
+/// the editor on a different port (e.g. to avoid conflicts) you had to add a port mapping to the
+/// ports section of the manifest.
+/// Example: Container listens on port C but editor should be reachable on port H -> Set editor in
+/// manifest to :H and add mapping H:C to ports.
+///
+/// Starting from 3.x manifests the ports of editors are dynamically redirected and correspond to
+/// the port accessible at the container.
+/// For the previous example this would mean setting the port of the editor to C and not adding any
+/// additional mapping to the ports section.
+///
+/// This function converts from the 2.x case to 3.x.
+fn correct_editor_port_mapping(
+    ports: Option<manifest_3_2_0::Ports>,
+    editors: Option<manifest_3_2_0::Editors>,
+) -> (
+    Option<manifest_3_2_0::Ports>,
+    Option<manifest_3_2_0::Editors>,
+) {
+    match (ports, editors) {
+        (Some(ports), Some(mut editors)) => {
+            let ports = ports
+                .0
+                .into_iter()
+                .filter_map(|port| {
+                    for editor in &mut editors.0 {
+                        let split: Vec<_> = port.as_str().split(':').collect();
+                        let (host, container) = match split[..] {
+                            [single] => match u16::from_str(single) {
+                                Ok(single) => (single, single),
+                                _ => continue,
+                            },
+                            [host, container] => {
+                                match (u16::from_str(host), u16::from_str(container)) {
+                                    (Ok(host), Ok(container)) => (host, container),
+                                    _ => continue,
+                                }
+                            }
+                            _ => continue,
+                        };
+                        if editor.port.get() == host {
+                            if let Some(new_editor_port) = std::num::NonZeroU16::new(container) {
+                                editor.port = new_editor_port;
+                                return None;
+                            };
+                        }
+                    }
+                    Some(port)
+                })
+                .collect();
+            (Some(manifest_3_2_0::Ports(ports)), Some(editors))
+        }
+        (ports, editors) => (ports, editors),
+    }
+}
+
 impl TryFrom<&manifest_2_0_0::FlecsAppManifest> for manifest_3_2_0::Single {
     type Error = manifest_3_2_0::error::ConversionError;
     fn try_from(manifest: &manifest_2_0_0::FlecsAppManifest) -> Result<Self, Self::Error> {
@@ -323,6 +379,7 @@ impl TryFrom<&manifest_2_0_0::FlecsAppManifest> for manifest_3_2_0::Single {
         } else {
             Some(manifest_3_2_0::Volumes::try_from(&manifest.volumes)?)
         };
+        let (ports, editors) = correct_editor_port_mapping(ports, editors);
         Ok(manifest_3_2_0::Single {
             app: (&manifest.app).try_into()?,
             args,
