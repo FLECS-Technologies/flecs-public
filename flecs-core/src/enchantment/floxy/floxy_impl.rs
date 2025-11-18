@@ -25,6 +25,7 @@ impl Floxy for FloxyImpl {
         std::fs::create_dir_all(self.lore().server_config_path())?;
         std::fs::create_dir_all(self.lore().instance_config_path())?;
         self.clear_server_configs()?;
+        self.clear_instance_configs()?;
         self.nginx.start()
     }
 
@@ -192,27 +193,13 @@ impl Floxy for FloxyImpl {
     }
 
     fn clear_server_configs(&self) -> anyhow::Result<()> {
-        let mut failed_deletes = Vec::new();
         let server_dir = self.lore().server_config_path();
-        for entry in std::fs::read_dir(&server_dir)? {
-            match entry {
-                Err(e) => error!("Error during deletion of floxy servers from {server_dir:?}: {e}"),
-                Ok(entry) => {
-                    if let Err(e) = self.delete_config_entry(&entry) {
-                        failed_deletes.push(format!("{:?}: {e}", entry.path()));
-                    }
-                }
-            }
-        }
-        if failed_deletes.is_empty() {
-            info!("All floxy server configs deleted {self}");
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!(
-                "Could not delete all floxy server configs ({})",
-                failed_deletes.join(",")
-            ))
-        }
+        self.clear_configs(&server_dir)
+    }
+
+    fn clear_instance_configs(&self) -> anyhow::Result<()> {
+        let instance_dir = self.lore().instance_config_path();
+        self.clear_configs(&instance_dir)
     }
 }
 
@@ -403,6 +390,29 @@ server {{
    }}
 }}"
         )
+    }
+
+    fn clear_configs(&self, path: &Path) -> anyhow::Result<()> {
+        let mut failed_deletes = Vec::new();
+        for entry in std::fs::read_dir(path)? {
+            match entry {
+                Err(e) => error!("Error during deletion of floxy config from {path:?}: {e}"),
+                Ok(entry) => {
+                    if let Err(e) = self.delete_config_entry(&entry) {
+                        failed_deletes.push(format!("{:?}: {e}", entry.path()));
+                    }
+                }
+            }
+        }
+        if failed_deletes.is_empty() {
+            info!("All floxy configs deleted from {path:?} {self}");
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(
+                "Could not delete all floxy configs from {path:?} ({})",
+                failed_deletes.join(",")
+            ))
+        }
     }
 }
 
