@@ -1229,6 +1229,7 @@ mod tests {
             editor: Some(manifest_2_0_0::FlecsAppManifestEditor::from_str(":15945").unwrap()),
             env: vec![
                 manifest_2_0_0::FlecsAppManifestEnvItem::from_str("MY_ENV=value").unwrap(),
+                manifest_2_0_0::FlecsAppManifestEnvItem::from_str("EMPTY_ENV=").unwrap(),
                 manifest_2_0_0::FlecsAppManifestEnvItem::from_str("tech.flecs.some-app_value=any")
                     .unwrap(),
             ],
@@ -1304,6 +1305,7 @@ mod tests {
             env: Some(
                 vec![
                     manifest_3_2_0::EnvItem::from_str("MY_ENV=value").unwrap(),
+                    manifest_3_2_0::EnvItem::from_str("EMPTY_ENV=").unwrap(),
                     manifest_3_2_0::EnvItem::from_str("tech.flecs.some-app_value=any").unwrap(),
                 ]
                 .into(),
