@@ -34,6 +34,7 @@ p,tech.flecs.core.instance_config_read_usb_devices,/v2/instances/:instance_id/co
 p,tech.flecs.core.instance_config_disconnect_usb_devices,/v2/instances/:instance_id/config/devices/usb,DELETE
 p,tech.flecs.core.instance_config_read_usb_device,/v2/instances/:instance_id/config/devices/usb/:port,GET
 p,tech.flecs.core.instance_config_disconnect_usb_device,/v2/instances/:instance_id/config/devices/usb/:port,DELETE
+p,tech.flecs.core.instance_config_connect_usb_device,/v2/instances/:instance_id/config/devices/usb/:port,PUT
 p,tech.flecs.core.instance_config_read_editors,/v2/instances/:instance_id/config/editors,GET
 p,tech.flecs.core.instance_config_read_editor,/v2/instances/:instance_id/config/editors/:port,GET
 p,tech.flecs.core.instance_config_remove_editor_path_prefix,/v2/instances/:instance_id/config/editors/:port/path_prefix,DELETE
@@ -130,6 +131,7 @@ g,tech.flecs.core.write_instance_config,tech.flecs.core.instance_config_set_depe
 g,tech.flecs.core.write_instance_config,tech.flecs.core.instance_config_delete_depend
 g,tech.flecs.core.write_instance_config,tech.flecs.core.instance_config_disconnect_usb_devices
 g,tech.flecs.core.write_instance_config,tech.flecs.core.instance_config_disconnect_usb_device
+g,tech.flecs.core.write_instance_config,tech.flecs.core.instance_config_connect_usb_device
 g,tech.flecs.core.write_instance_config,tech.flecs.core.instance_config_remove_editor_path_prefix
 g,tech.flecs.core.write_instance_config,tech.flecs.core.instance_config_set_editor_path_prefix
 g,tech.flecs.core.write_instance_config,tech.flecs.core.instance_config_clear_environment
