@@ -1,5 +1,5 @@
 [env]
-FLECS_CODENAME = "snowhare"
-FLECS_VERSION = "4.1.1"
+FLECS_CODENAME = "red-deer"
+FLECS_VERSION = "5.0.0"
 FLECS_API_VERSION = "2.1.0"
 
