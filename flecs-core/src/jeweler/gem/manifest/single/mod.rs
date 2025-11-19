@@ -366,6 +366,7 @@ pub mod tests {
                 vec![
                     FromStr::from_str("ENV_VAR_1=value-1").unwrap(),
                     FromStr::from_str("ENV_VAR_2=value-2").unwrap(),
+                    FromStr::from_str("ENV_VAR_3=").unwrap(),
                 ]
                 .into(),
             ),
@@ -486,6 +487,10 @@ pub mod tests {
                 EnvironmentVariable {
                     name: "ENV_VAR_2".to_string(),
                     value: Some("value-2".to_string()),
+                },
+                EnvironmentVariable {
+                    name: "ENV_VAR_3".to_string(),
+                    value: Some("".to_string()),
                 },
             ]
         )
