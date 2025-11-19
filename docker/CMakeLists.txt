@@ -59,7 +59,7 @@ endfunction()
 set(FENCE_DOWNLOAD_CODE [[
     set(ARCH @ARCH@)
     message(STATUS "Building for architecture ${ARCH}")
-    set(FENCE_REMOTE_PATH "https://flecs.blob.core.windows.net/flecs-dl/tech.flecs.fence/{1}/flecs-export-tech.flecs.fence_{1}_amd64.tar")
+    set(FENCE_REMOTE_PATH "https://flecs.blob.core.windows.net/flecs-dl/tech.flecs.fence/{1}/flecs-export-tech.flecs.fence_{1}_{2}.tar")
     message(STATUS "Determining latest fence version")
     execute_process(
         COMMAND curl -s --head https://github.com/FLECS-Technologies/apps-tech.flecs.fence/releases/latest
