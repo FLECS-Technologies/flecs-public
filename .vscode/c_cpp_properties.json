@@ -9,7 +9,7 @@
             ],
             "defines": [
                 "FLECS_EXPORT=__attribute__((visibility(\"default\")))",
-                "FLECS_VERSION=\"4.1.1-snowhare\"",
+                "FLECS_VERSION=\"5.0.0-red-deer\"",
                 "FLECS_API_VERSION=\"2.1.0\"",
                 "FLECS_GIT_SHA=\"abcd1234\"",
                 "FLECS_FINAL_UNLESS_TESTED=final",

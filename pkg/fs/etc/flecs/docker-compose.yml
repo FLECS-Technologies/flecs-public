@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   flecsd:
-    image: flecs/flecs-slim:4.1.1-snowhare-dev
+    image: flecs/flecs-slim:5.0.0-red-deer-dev
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - flecsd:/var/lib/flecs
@@ -11,7 +11,7 @@ services:
     command: 172.21.0.1
 
   webapp:
-    image: flecs/webapp:4.1.1-snowhare-dev
+    image: flecs/webapp:5.0.0-red-deer-dev
     ports:
       - 8081:80
     depends_on:
