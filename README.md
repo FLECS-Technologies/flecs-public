@@ -108,7 +108,7 @@ base_path = "/var/lib/flecs/"
 ## To open a tcp port use
 # [listener.TCP]
 ## To specify the port use
-# Port = 8951
+# port = 8951
 ## Environment variable: FLECS_CORE_PORT
 ## Default: 8951
 ## To specify the bind address use
@@ -121,7 +121,8 @@ base_path = "/var/lib/flecs/"
 # bind_address = "::"
 
 ## To listen on a unix socket use
-## Socket = "/run/flecs/flecsd.sock"
+#[listener.UnixSocket]
+# socket_path = "/run/flecs/flecsd.sock"
 ## Environment variable FLECS_CORE_SOCKET_PATH
 ## Note that FLECS_CORE_PORT and FLECS_CORE_BIND_ADDRESS take precedence over FLECS_CORE_SOCKET_PATH
 ## Default: 
