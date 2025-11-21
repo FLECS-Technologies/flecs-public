@@ -26,13 +26,13 @@ pub trait TriviallyMergeable {
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("transparent")]
+    #[error(transparent)]
     TomlSer(#[from] toml::ser::Error),
-    #[error("transparent")]
+    #[error(transparent)]
     TomlDe(#[from] toml::de::Error),
-    #[error("transparent")]
+    #[error(transparent)]
     Json(#[from] serde_json::Error),
-    #[error("transparent")]
+    #[error(transparent)]
     IO(#[from] std::io::Error),
 }
 
