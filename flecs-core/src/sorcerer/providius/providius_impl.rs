@@ -1,8 +1,6 @@
 use crate::jeweler::gem::instance::{InstanceId, ProviderReference};
 use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
 #[cfg(feature = "auth")]
-use crate::lore::Lore;
-#[cfg(feature = "auth")]
 use crate::quest;
 #[cfg(feature = "auth")]
 use crate::quest::SyncQuest;
@@ -55,7 +53,6 @@ impl Providius for ProvidiusImpl {
     async fn put_core_auth_provider(
         &self,
         vault: Arc<Vault>,
-        #[cfg(feature = "auth")] lore: Arc<Lore>,
         #[cfg(feature = "auth")] watch: Arc<Watch>,
         provider: ProviderReference,
     ) -> Result<Option<ProviderReference>, SetCoreAuthProviderError> {
@@ -73,12 +70,9 @@ impl Providius for ProvidiusImpl {
             unreachable!("Reservation should never fail");
         };
         #[cfg(feature = "auth")]
-        let config = build_watch_config_from_auth_provider(
-            instances.gems(),
-            providers.gems(),
-            &lore.network.default_network_name,
-            provider,
-        )?;
+        let config =
+            build_watch_config_from_auth_provider(instances.gems(), providers.gems(), provider)
+                .await?;
         let previous = set_core_auth_provider(instances.gems(), providers.gems_mut(), provider)?;
         #[cfg(feature = "auth")]
         watch
@@ -94,7 +88,6 @@ impl Providius for ProvidiusImpl {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        lore: Arc<Lore>,
         watch: Arc<Watch>,
     ) -> Result<(), SetCoreAuthProviderError> {
         let GrabbedPouches {
@@ -116,12 +109,9 @@ impl Providius for ProvidiusImpl {
             quest.detail = Some("No core auth provider configured".to_string());
             return Ok(());
         };
-        let config = build_watch_config_from_auth_provider(
-            instances.gems(),
-            providers.gems(),
-            &lore.network.default_network_name,
-            provider,
-        )?;
+        let config =
+            build_watch_config_from_auth_provider(instances.gems(), providers.gems(), provider)
+                .await?;
         watch
             .data_mut()
             .await
@@ -465,7 +455,6 @@ impl Providius for ProvidiusImpl {
     async fn build_watch_config_from_auth_provider(
         &self,
         vault: Arc<Vault>,
-        lore: Arc<Lore>,
         auth_provider: ProviderReference,
     ) -> Result<watch::AuthProviderMetaData, BuildWatchConfigError> {
         let GrabbedPouches {
@@ -481,11 +470,7 @@ impl Providius for ProvidiusImpl {
         else {
             unreachable!("Reservation should never fail");
         };
-        build_watch_config_from_auth_provider(
-            instances.gems(),
-            providers.gems(),
-            &lore.network.default_network_name,
-            auth_provider,
-        )
+        build_watch_config_from_auth_provider(instances.gems(), providers.gems(), auth_provider)
+            .await
     }
 }

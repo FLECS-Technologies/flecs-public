@@ -275,7 +275,6 @@ impl<
     async fn startup_quest(
         quest: SyncQuest,
         vault: Arc<Vault>,
-        #[cfg(feature = "auth")] lore: Arc<Lore>,
         floxy: Arc<FloxyOperation<F>>,
         instancius: Arc<I>,
         #[cfg(feature = "auth")] providius: Arc<dyn Providius>,
@@ -289,7 +288,7 @@ impl<
                 .await
                 .create_sub_quest("Setup core auth provider", |quest| async move {
                     providius
-                        .setup_core_auth_provider(quest, vault, lore, watch)
+                        .setup_core_auth_provider(quest, vault, watch)
                         .await
                 })
                 .await
@@ -314,8 +313,6 @@ impl<
         let instancius = self.sorcerers.instancius.clone();
         #[cfg(feature = "auth")]
         let providius = self.sorcerers.providius.clone();
-        #[cfg(feature = "auth")]
-        let lore = self.lore.clone();
         let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
         let vault = self.vault.clone();
         #[cfg(feature = "auth")]
@@ -328,8 +325,6 @@ impl<
                 Self::startup_quest(
                     quest,
                     vault,
-                    #[cfg(feature = "auth")]
-                    lore,
                     floxy,
                     instancius,
                     #[cfg(feature = "auth")]

@@ -1,7 +1,7 @@
 pub mod path;
 
 use crate::fsm::server_impl::api::v2::models::{AdditionalInfo, PutProviderReferenceRequest};
-use crate::fsm::server_impl::state::{LoreState, ProvidiusState, VaultState, WatchState};
+use crate::fsm::server_impl::state::{ProvidiusState, VaultState, WatchState};
 use crate::sorcerer::providius::SetCoreAuthProviderError;
 use axum::Json;
 use axum::extract::State;
@@ -60,15 +60,12 @@ pub async fn get(
 pub async fn put(
     State(VaultState(vault)): State<VaultState>,
     State(ProvidiusState(providius)): State<ProvidiusState>,
-    State(LoreState(lore)): State<LoreState>,
     #[cfg(feature = "auth")] State(WatchState(watch)): State<WatchState>,
     Json(PutProviderReferenceRequest { provider }): Json<PutProviderReferenceRequest>,
 ) -> Result<Response, SetCoreAuthProviderError> {
     match providius
         .put_core_auth_provider(
             vault,
-            #[cfg(feature = "auth")]
-            lore,
             #[cfg(feature = "auth")]
             watch,
             provider,

@@ -145,6 +145,7 @@ pub mod tests {
             editor_app(),
             network_app(),
             mount_app(),
+            volumes_app(),
         ]
     }
 
@@ -296,6 +297,22 @@ pub mod tests {
             },
             deployments: vec![AppDataDeserializable {
                 id: Some("34c6af34572".to_string()),
+                deployment_id: "".to_string(),
+                desired: AppStatus::Installed,
+            }],
+        }
+    }
+
+    pub const VOLUMES_APP_NAME: &str = "tech.flecs.volumes";
+    pub const VOLUMES_APP_VERSION: &str = "0.4.0";
+    fn volumes_app() -> AppDeserializable {
+        AppDeserializable {
+            key: AppKey {
+                name: VOLUMES_APP_NAME.to_string(),
+                version: VOLUMES_APP_VERSION.to_string(),
+            },
+            deployments: vec![AppDataDeserializable {
+                id: Some("34c6a444572".to_string()),
                 deployment_id: "".to_string(),
                 desired: AppStatus::Installed,
             }],
