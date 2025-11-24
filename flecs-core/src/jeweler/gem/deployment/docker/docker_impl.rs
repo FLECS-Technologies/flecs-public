@@ -1138,6 +1138,32 @@ impl DockerDeployment for DockerDeploymentImpl {
             relic::docker::container::logs(docker_client, quest, &id.to_docker_id()).await?;
         Ok(Logs { stderr, stdout })
     }
+
+    async fn instance_default_address(
+        &self,
+        lore: NetworkLoreRef,
+        id: InstanceId,
+    ) -> anyhow::Result<Option<IpAddr>> {
+        let docker_client = self.client()?;
+        let address = relic::docker::container::inspect(docker_client, &id.to_docker_id())
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Instance with id {id} not found"))?
+            .network_settings
+            .ok_or_else(|| anyhow::anyhow!("Instance with id {id} has no network settings"))?
+            .networks
+            .ok_or_else(|| {
+                anyhow::anyhow!("Instance with id {id} is not connected to any network")
+            })?
+            .remove(&lore.as_ref().as_ref().default_network_name)
+            .ok_or_else(|| {
+                anyhow::anyhow!("Instance with id {id} is not connected to the default network")
+            })?
+            .ip_address;
+        match address {
+            None => Ok(None),
+            Some(address) => Ok(Some(address.parse()?)),
+        }
+    }
 }
 
 #[async_trait]

@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use bollard::container::Config;
 pub use docker_impl::*;
 use erased_serde::serialize_trait_object;
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -98,6 +98,11 @@ pub trait DockerDeployment: CommonDeployment {
     async fn instance_status(&self, id: InstanceId) -> anyhow::Result<InstanceStatus>;
 
     async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> anyhow::Result<Logs>;
+    async fn instance_default_address(
+        &self,
+        lore: NetworkLoreRef,
+        id: InstanceId,
+    ) -> anyhow::Result<Option<IpAddr>>;
 }
 
 serialize_trait_object!(DockerDeployment);
@@ -280,6 +285,11 @@ pub mod tests {
             async fn delete_instance(&self, id: InstanceId) -> Result<bool>;
             async fn instance_status(&self, id: InstanceId) -> Result<InstanceStatus>;
             async fn instance_logs(&self, quest: SyncQuest, id: InstanceId) -> Result<Logs>;
+            async fn instance_default_address(
+                &self,
+                lore: NetworkLoreRef,
+                id: InstanceId,
+            ) -> Result<Option<IpAddr>>;
         }
     }
 

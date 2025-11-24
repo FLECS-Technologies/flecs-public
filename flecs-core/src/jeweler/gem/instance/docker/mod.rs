@@ -25,7 +25,9 @@ use crate::vault::pouch::AppKey;
 use crate::{legacy, lore, vault};
 use async_trait::async_trait;
 use bollard::container::Config;
-use bollard::models::{ContainerStateStatusEnum, DeviceMapping, HostConfig, MountTypeEnum};
+use bollard::models::{
+    ContainerStateStatusEnum, DeviceMapping, EndpointSettings, HostConfig, MountTypeEnum,
+};
 use config::InstanceConfig;
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::{AppInstance, InstancesInstanceIdGet200Response};
@@ -128,6 +130,13 @@ impl InstanceCommon for DockerInstance {
                 _ => None,
             })
             .collect();
+        let ip_address = self
+            .deployment
+            .instance_default_address(self.lore.clone(), self.id)
+            .await?
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_default();
         Ok(
             flecsd_axum_server::models::InstancesInstanceIdGet200Response {
                 instance_id: format!("{}", self.id),
@@ -137,13 +146,7 @@ impl InstanceCommon for DockerInstance {
                 desired: self.desired.into(),
                 config_files,
                 hostname: self.hostname.clone(),
-                ip_address: self
-                    .config
-                    .connected_networks
-                    .values()
-                    .next()
-                    .map(ToString::to_string)
-                    .unwrap_or_default(),
+                ip_address,
                 ports,
                 volumes,
                 editors: self.instance_editors(),
@@ -181,7 +184,12 @@ impl InstanceCommon for DockerInstance {
     }
 
     async fn import(&mut self, quest: SyncQuest, src: PathBuf, dst: PathBuf) -> anyhow::Result<()> {
-        for (id, ip) in self.config.connected_networks.iter_mut() {
+        for (id, ip) in self
+            .config
+            .connected_networks
+            .iter_mut()
+            .filter(|(id, _)| **id != self.lore.network.default_network_name)
+        {
             match self.deployment.network(id.clone()).await.map_err(|error| {
                 TransferIpError::InspectNetwork {
                     network: id.clone(),
@@ -293,15 +301,9 @@ impl DockerInstance {
     }
 
     pub async fn get_default_network_address(&self) -> crate::Result<Option<IpAddr>> {
-        match self
-            .deployment
-            .default_network(self.lore.clone())
-            .await?
-            .name
-        {
-            None => anyhow::bail!("Default network has no name"),
-            Some(network_id) => Ok(self.config.connected_networks.get(&network_id).cloned()),
-        }
+        self.deployment
+            .instance_default_address(self.lore.clone(), self.id)
+            .await
     }
 
     fn instance_editors(&self) -> Option<models::InstanceEditors> {
@@ -474,18 +476,12 @@ impl DockerInstance {
         deployment: Arc<dyn DockerDeployment>,
         manifest: Arc<AppManifestSingle>,
         name: String,
-        address: IpAddr,
         provider_config: ProviderConfig,
     ) -> anyhow::Result<Self> {
         let instance_id = InstanceId::new_random();
         let tcp_port_mapping = manifest.ports.clone();
         let environment_variables = manifest.environment_variables.clone();
         let config_path = lore.instance.instance_config_path(&instance_id.to_string());
-        let default_network_id = deployment
-            .default_network(lore.clone())
-            .await?
-            .name
-            .ok_or_else(|| anyhow::anyhow!("Default network has no name"))?;
         let result = quest
             .lock()
             .await
@@ -536,7 +532,7 @@ impl DockerInstance {
                 sctp: vec![],
             },
             volume_mounts,
-            connected_networks: HashMap::from([(default_network_id, address)]),
+            connected_networks: HashMap::new(),
             usb_devices: HashMap::new(),
             mapped_editor_ports: Default::default(),
             editor_path_prefixes: manifest.default_editor_path_prefixes(),
@@ -564,9 +560,6 @@ impl DockerInstance {
         if self.desired != InstanceStatus::Running || self.is_running().await? {
             return Ok(());
         }
-        self.load_reverse_proxy_config(floxy.clone()).await?;
-        self.load_additional_locations_reverse_proxy_config(floxy.clone())?;
-        self.load_auth_provider_proxy_config(floxy).await?;
         self.deployment
             .start_instance(
                 self.lore.clone(),
@@ -575,6 +568,9 @@ impl DockerInstance {
                 &self.manifest.config_files,
             )
             .await?;
+        self.load_reverse_proxy_config(floxy.clone()).await?;
+        self.load_additional_locations_reverse_proxy_config(floxy.clone())?;
+        self.load_auth_provider_proxy_config(floxy).await?;
         Ok(())
     }
 
@@ -1262,6 +1258,10 @@ impl DockerInstance {
             ..HostConfig::default()
         });
         let mut network_config = self.config.generate_network_config();
+        network_config.endpoints_config.insert(
+            self.lore.network.default_network_name.clone(),
+            EndpointSettings::default(),
+        );
         if let Some(hostname) = self.manifest.hostname() {
             for endpoint in network_config.endpoints_config.values_mut() {
                 let alias = hostname.clone();
@@ -1315,7 +1315,6 @@ pub mod tests {
     use crate::relic::var::test::MockVarReader;
     use crate::tests::prepare_test_path;
     use crate::vault::pouch::instance::tests::{NETWORK_INSTANCE, get_test_instance};
-    use bollard::secret::Network;
     use flecsd_axum_server::models::{
         InstanceDetailConfigFile, InstanceDetailConfigFiles, InstanceDetailPort,
         InstanceDetailVolume,
@@ -1945,25 +1944,17 @@ pub mod tests {
             .expect_copy_from_app_image()
             .times(3)
             .returning(|_, _, _, _, _| Ok(()));
-        deployment.expect_default_network().times(1).returning(|_| {
-            Ok(Network {
-                name: Some("DefaultTestNetworkId".to_string()),
-                ..Network::default()
-            })
-        });
         deployment
             .expect_create_volume()
             .times(1)
             .returning(|_, _| Ok("TestVolumeId".to_string()));
         let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
-        let address = IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123));
         let instance = DockerInstance::try_create_new(
             Quest::new_synced("TestQuest".to_string()),
             lore,
             deployment,
             manifest.clone(),
             "TestInstance".to_string(),
-            address,
             ProviderConfig::default(),
         )
         .await
@@ -1974,10 +1965,7 @@ pub mod tests {
             &instance.config.environment_variables,
             &manifest.environment_variables
         );
-        assert_eq!(
-            &instance.config.connected_networks,
-            &HashMap::from([("DefaultTestNetworkId".to_string(), address)])
-        );
+        assert_eq!(&instance.config.connected_networks, &HashMap::new());
         assert_eq!(
             &instance.config.volume_mounts,
             &HashMap::from([(
@@ -1999,12 +1987,6 @@ pub mod tests {
             .expect_copy_from_app_image()
             .times(3)
             .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
-        deployment.expect_default_network().times(1).returning(|_| {
-            Ok(Network {
-                name: Some("DefaultTestNetworkId".to_string()),
-                ..Network::default()
-            })
-        });
         let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
         assert!(
             DockerInstance::try_create_new(
@@ -2013,57 +1995,6 @@ pub mod tests {
                 deployment,
                 manifest.clone(),
                 "TestInstance".to_string(),
-                IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
-                ProviderConfig::default(),
-            )
-            .await
-            .is_err()
-        );
-    }
-
-    #[tokio::test]
-    async fn create_default_network_without_id() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
-        let manifest = create_test_manifest_full(None);
-        let mut deployment = MockedDockerDeployment::new();
-        deployment
-            .expect_default_network()
-            .times(1)
-            .returning(|_| Ok(Network::default()));
-        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
-        assert!(
-            DockerInstance::try_create_new(
-                Quest::new_synced("TestQuest".to_string()),
-                lore,
-                deployment,
-                manifest.clone(),
-                "TestInstance".to_string(),
-                IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
-                ProviderConfig::default(),
-            )
-            .await
-            .is_err()
-        );
-    }
-
-    #[tokio::test]
-    async fn create_default_network_err() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
-        let manifest = create_test_manifest_full(None);
-        let mut deployment = MockedDockerDeployment::new();
-        deployment
-            .expect_default_network()
-            .times(1)
-            .returning(|_| Err(anyhow::anyhow!("TestError").into()));
-        let deployment: Arc<dyn DockerDeployment> = Arc::new(deployment);
-        assert!(
-            DockerInstance::try_create_new(
-                Quest::new_synced("TestQuest".to_string()),
-                lore,
-                deployment,
-                manifest.clone(),
-                "TestInstance".to_string(),
-                IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)),
                 ProviderConfig::default(),
             )
             .await
@@ -2151,6 +2082,10 @@ pub mod tests {
             .expect_instance_status()
             .times(1)
             .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_instance_default_address()
+            .times(1)
+            .returning(|_, _| Ok(Some(IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)))));
         let deployment = Arc::new(deployment);
         let manifest = create_test_manifest_full(Some(true));
         let instance_id = InstanceId::new(0x123);
@@ -2384,6 +2319,13 @@ pub mod tests {
             config.networking_config,
             Some(bollard::container::NetworkingConfig {
                 endpoints_config: HashMap::from([
+                    (
+                        "flecs".to_string(),
+                        bollard::models::EndpointSettings {
+                            aliases: Some(vec!["TestHostName".to_string()]),
+                            ..Default::default()
+                        }
+                    ),
                     (
                         "Ipv6Network".to_string(),
                         bollard::models::EndpointSettings {
@@ -2660,12 +2602,10 @@ pub mod tests {
     async fn instance_load_reverse_proxy_config_ok() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
-        deployment.expect_default_network().returning(|_| {
-            Ok(Network {
-                name: Some("flecs".to_string()),
-                ..Default::default()
-            })
-        });
+        deployment
+            .expect_instance_default_address()
+            .times(1)
+            .returning(|_, _| Ok(Some(IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20)))));
         let mut floxy = MockFloxy::new();
         floxy
             .expect_add_instance_reverse_proxy_config()
@@ -2678,15 +2618,11 @@ pub mod tests {
             })
             .returning(|_, _, _, _| Ok(false));
         let floxy = FloxyOperation::new_arc(Arc::new(floxy));
-        let mut instance = test_instance(
+        let instance = test_instance(
             2,
             lore,
             Arc::new(deployment),
             create_test_manifest_full(None),
-        );
-        instance.config.connected_networks.insert(
-            "flecs".to_string(),
-            IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20)),
         );
         instance.load_reverse_proxy_config(floxy).await.unwrap();
     }
@@ -2696,8 +2632,9 @@ pub mod tests {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
-            .expect_default_network()
-            .returning(|_| Err(anyhow::anyhow!("TestError").into()));
+            .expect_instance_default_address()
+            .times(1)
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         let instance = test_instance(
             2,
@@ -2725,12 +2662,10 @@ pub mod tests {
     async fn instance_load_reverse_proxy_config_ok_no_address() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
-        deployment.expect_default_network().returning(|_| {
-            Ok(Network {
-                name: Some("flecs".to_string()),
-                ..Default::default()
-            })
-        });
+        deployment
+            .expect_instance_default_address()
+            .times(1)
+            .returning(|_, _| Ok(None));
         let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
         let instance = test_instance(
             2,

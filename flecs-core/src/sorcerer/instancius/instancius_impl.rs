@@ -55,32 +55,6 @@ impl InstanciusImpl {
         manifest: Arc<AppManifestSingle>,
         instance_name: String,
     ) -> anyhow::Result<Instance> {
-        let address = quest
-            .lock()
-            .await
-            .create_sub_quest(
-                format!(
-                    "Reserve ip address in default network of deployment {}",
-                    deployment.id()
-                ),
-                |quest| {
-                    let (vault, deployment, lore) =
-                        (vault.clone(), deployment.clone(), lore.clone());
-                    async move {
-                        let network =
-                            Ipv4NetworkAccess::try_from(deployment.default_network(lore).await?)?;
-                        let address = spell::instance::make_ipv4_reservation(vault, network)
-                            .await
-                            .ok_or_else(|| {
-                                anyhow::anyhow!("No free ip address in default network")
-                            })?;
-                        quest.lock().await.detail = Some(format!("Reserved {}", address));
-                        Ok::<Ipv4Addr, anyhow::Error>(address)
-                    }
-                },
-            )
-            .await
-            .2;
         let auth_provider_config = quest
             .lock()
             .await
@@ -108,7 +82,6 @@ impl InstanciusImpl {
             .auth
             .as_ref()
             .map(|auth_provider_config| auth_provider_config.port);
-        let address = IpAddr::V4(address.await?);
         let instance = quest
             .lock()
             .await
@@ -124,7 +97,6 @@ impl InstanciusImpl {
                         deployment,
                         manifest,
                         instance_name,
-                        address,
                         provider_config,
                     )
                 },
@@ -132,7 +104,6 @@ impl InstanciusImpl {
             .await
             .2;
         let instance = instance.await;
-        spell::instance::clear_ip_reservation(vault.clone(), address).await;
         if let Some(auth_provider_port) = auth_provider_port {
             spell::instance::clear_auth_port_reservation(vault.clone(), auth_provider_port).await;
         }
@@ -1385,7 +1356,8 @@ pub mod tests {
         MINIMAL_APP_NAME, MINIMAL_APP_VERSION, MINIMAL_APP_WITH_INSTANCE_NAME,
         MINIMAL_APP_WITH_INSTANCE_VERSION, MULTI_INSTANCE_APP_NAME, MULTI_INSTANCE_APP_VERSION,
         NO_MANIFEST_APP_NAME, NO_MANIFEST_APP_VERSION, SINGLE_INSTANCE_APP_NAME,
-        SINGLE_INSTANCE_APP_VERSION, UNKNOWN_APP_NAME, UNKNOWN_APP_VERSION,
+        SINGLE_INSTANCE_APP_VERSION, UNKNOWN_APP_NAME, UNKNOWN_APP_VERSION, VOLUMES_APP_NAME,
+        VOLUMES_APP_VERSION,
     };
     use crate::vault::pouch::instance::tests::{
         EDITOR_INSTANCE, ENV_INSTANCE, LABEL_INSTANCE, MOUNT_INSTANCE, NETWORK_INSTANCE,
@@ -1638,20 +1610,6 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .returning(|_, _| Ok(true));
-        deployment.expect_default_network().times(2).returning(|_| {
-            Ok(Network {
-                name: Some("DefaultTestNetworkId".to_string()),
-                ipam: Some(Ipam {
-                    config: Some(vec![IpamConfig {
-                        subnet: Some("10.18.0.0/16".to_string()),
-                        gateway: Some("10.18.0.100".to_string()),
-                        ..IpamConfig::default()
-                    }]),
-                    ..Ipam::default()
-                }),
-                ..Network::default()
-            })
-        });
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
@@ -1680,21 +1638,15 @@ pub mod tests {
         let Some(Instance::Docker(instance)) = instances.gems().get(&instance_id) else {
             panic!()
         };
-        assert_eq!(
-            instance.config.connected_networks,
-            HashMap::from([(
-                "DefaultTestNetworkId".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
-            )])
-        );
+        assert!(instance.config.connected_networks.is_empty());
     }
 
     #[tokio::test]
     async fn create_instance_err() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let app_key = AppKey {
-            name: MINIMAL_APP_NAME.to_string(),
-            version: MINIMAL_APP_VERSION.to_string(),
+            name: VOLUMES_APP_NAME.to_string(),
+            version: VOLUMES_APP_VERSION.to_string(),
         };
         let mut deployment = MockedDockerDeployment::new();
         deployment
@@ -1707,9 +1659,9 @@ pub mod tests {
             .expect_is_app_installed()
             .returning(|_, _| Ok(true));
         deployment
-            .expect_default_network()
-            .times(1)
-            .returning(|_| Err(anyhow::anyhow!("TestError").into()));
+            .expect_create_volume()
+            .times(2)
+            .returning(|_, _| Err(anyhow::anyhow!("TestError")));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
@@ -1737,18 +1689,16 @@ pub mod tests {
             .keys()
             .cloned()
             .collect();
-        assert!(
-            InstanciusImpl::default()
-                .create_instance(
-                    Quest::new_synced("TestQuest".to_string()),
-                    vault.clone(),
-                    lore,
-                    app_key,
-                    "TestInstance".to_string(),
-                )
-                .await
-                .is_err()
-        );
+        let result = InstanciusImpl::default()
+            .create_instance(
+                Quest::new_synced("TestQuest".to_string()),
+                vault.clone(),
+                lore,
+                app_key,
+                "TestInstance".to_string(),
+            )
+            .await;
+        assert!(result.is_err());
 
         let GrabbedPouches {
             instance_pouch: Some(ref instances),
@@ -1782,20 +1732,6 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .returning(|_, _| Ok(true));
-        deployment.expect_default_network().times(4).returning(|_| {
-            Ok(Network {
-                name: Some("DefaultTestNetworkId".to_string()),
-                ipam: Some(Ipam {
-                    config: Some(vec![IpamConfig {
-                        subnet: Some("10.18.0.0/16".to_string()),
-                        gateway: Some("10.18.0.100".to_string()),
-                        ..IpamConfig::default()
-                    }]),
-                    ..Ipam::default()
-                }),
-                ..Network::default()
-            })
-        });
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
@@ -1835,23 +1771,11 @@ pub mod tests {
         let Some(Instance::Docker(instance)) = instances.gems().get(&instance_id_1) else {
             panic!()
         };
-        assert_eq!(
-            instance.config.connected_networks,
-            HashMap::from([(
-                "DefaultTestNetworkId".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
-            )])
-        );
+        assert!(instance.config.connected_networks.is_empty());
         let Some(Instance::Docker(instance)) = instances.gems().get(&instance_id_2) else {
             panic!()
         };
-        assert_eq!(
-            instance.config.connected_networks,
-            HashMap::from([(
-                "DefaultTestNetworkId".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 2))
-            )])
-        );
+        assert!(instance.config.connected_networks.is_empty());
     }
     #[tokio::test]
     async fn create_instance_single_instance_but_instance_present() {
@@ -1870,20 +1794,6 @@ pub mod tests {
         deployment
             .expect_is_app_installed()
             .returning(|_, _| Ok(true));
-        deployment.expect_default_network().times(2).returning(|_| {
-            Ok(Network {
-                name: Some("DefaultTestNetworkId".to_string()),
-                ipam: Some(Ipam {
-                    config: Some(vec![IpamConfig {
-                        subnet: Some("10.18.0.0/16".to_string()),
-                        gateway: Some("10.18.0.100".to_string()),
-                        ..IpamConfig::default()
-                    }]),
-                    ..Ipam::default()
-                }),
-                ..Network::default()
-            })
-        });
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::new(),
@@ -1924,13 +1834,7 @@ pub mod tests {
         let Some(Instance::Docker(instance)) = instances.gems().get(&instance_id) else {
             panic!()
         };
-        assert_eq!(
-            instance.config.connected_networks,
-            HashMap::from([(
-                "DefaultTestNetworkId".to_string(),
-                IpAddr::V4(Ipv4Addr::new(10, 18, 0, 1))
-            )])
-        );
+        assert!(instance.config.connected_networks.is_empty());
     }
     #[tokio::test]
     async fn create_instance_app_not_installed() {
@@ -2250,6 +2154,10 @@ pub mod tests {
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_instance_default_address()
+            .times(1)
+            .returning(|_, _| Ok(Some(IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20)))));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
@@ -4232,12 +4140,10 @@ pub mod tests {
             .expect_instance_status()
             .once()
             .returning(|_| Ok(InstanceStatus::Running));
-        deployment.expect_default_network().once().returning(|_| {
-            Ok(Network {
-                name: Some("flecs".to_string()),
-                ..Network::default()
-            })
-        });
+        deployment
+            .expect_instance_default_address()
+            .times(1)
+            .returning(|_, _| Ok(Some(IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20)))));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(EDITOR_INSTANCE, deployment)]),
@@ -4329,12 +4235,10 @@ pub mod tests {
             .expect_instance_status()
             .once()
             .returning(|_| Ok(InstanceStatus::Running));
-        deployment.expect_default_network().once().returning(|_| {
-            Ok(Network {
-                name: Some("unknown".to_string()),
-                ..Network::default()
-            })
-        });
+        deployment
+            .expect_instance_default_address()
+            .times(1)
+            .returning(|_, _| Ok(None));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(EDITOR_INSTANCE, deployment)]),

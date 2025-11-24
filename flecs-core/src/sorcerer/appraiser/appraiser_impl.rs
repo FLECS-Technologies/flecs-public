@@ -674,7 +674,7 @@ pub mod tests {
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault(HashMap::new(), HashMap::new(), Some(deployment));
         let result = AppraiserImpl::default().get_apps(vault).await.unwrap();
-        assert_eq!(result.len(), 9);
+        assert_eq!(result.len(), 10);
         for app_key in existing_app_keys()
             .into_iter()
             .filter(|app_key| app_key.name != NO_MANIFEST_APP_NAME)

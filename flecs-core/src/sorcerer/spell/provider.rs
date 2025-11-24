@@ -9,8 +9,6 @@ use crate::jeweler::gem::manifest::{DependencyKey, FeatureKey};
 use crate::quest::{State, SyncQuest};
 use crate::sorcerer::instancius::QueryInstanceConfigError;
 use crate::sorcerer::providius::{Dependency, Provider};
-#[cfg(feature = "auth")]
-use crate::sorcerer::spell::instance::get_instance_config_part_with_from_gems;
 use crate::vault::pouch::provider::{CoreProviders, ProviderId};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault, pouch};
@@ -159,12 +157,17 @@ pub enum BuildWatchConfigError {
     DefaultProviderNotSet,
     #[error("Instance with id {id} does not provide feature auth")]
     DoesNotProvide { id: ProviderId },
-    #[error("Auth provider with id {id} is not connected to network {network}")]
-    NotConnected { id: ProviderId, network: String },
+    #[error("Auth provider with id {id} is not connected to default network")]
+    NotConnected { id: ProviderId },
     #[error("Auth provider with id {id} is not accessible via host port")]
     NotAccessible { id: ProviderId },
-    #[error(transparent)]
-    QueryConfig(#[from] QueryInstanceConfigError),
+    #[error("Could not get address of auth provider with id {id}: {error}")]
+    FailedToGetIp {
+        id: ProviderId,
+        error: anyhow::Error,
+    },
+    #[error("MultiImageApps can not be auth providers")]
+    Compose,
 }
 
 pub async fn delete_default_provider(
@@ -731,10 +734,9 @@ pub async fn set_default_dependency(
 }
 
 #[cfg(feature = "auth")]
-pub fn build_watch_config_from_auth_provider(
+pub async fn build_watch_config_from_auth_provider(
     instances: &pouch::instance::Gems,
     providers: &pouch::provider::Gems,
-    network_name: &str,
     auth_provider: ProviderReference,
 ) -> Result<watch::AuthProviderMetaData, BuildWatchConfigError> {
     let provider_id = match auth_provider {
@@ -753,14 +755,17 @@ pub fn build_watch_config_from_auth_provider(
         .auth
         .as_ref()
         .ok_or(BuildWatchConfigError::DoesNotProvide { id: provider_id })?;
-
-    let ip = get_instance_config_part_with_from_gems(instances, provider_id, |config| {
-        config.connected_networks.get(network_name).copied()
-    })?;
-    let ip = ip.ok_or_else(|| BuildWatchConfigError::NotConnected {
-        id: provider_id,
-        network: network_name.to_string(),
-    })?;
+    let Instance::Docker(provider) = provider else {
+        return Err(BuildWatchConfigError::Compose);
+    };
+    let ip = provider
+        .get_default_network_address()
+        .await
+        .map_err(|e| BuildWatchConfigError::FailedToGetIp {
+            id: provider_id,
+            error: e,
+        })?
+        .ok_or_else(|| BuildWatchConfigError::NotConnected { id: provider_id })?;
     let port = auth_provider.port;
     let meta = auth_provider.build_meta(ip, port).unwrap();
     Ok(meta)

@@ -57,19 +57,9 @@ pub async fn create_docker_instance(
     deployment: Arc<dyn DockerDeployment>,
     manifest: Arc<AppManifestSingle>,
     name: String,
-    address: IpAddr,
     provider_config: ProviderConfig,
 ) -> Result<DockerInstance> {
-    DockerInstance::try_create_new(
-        quest,
-        lore,
-        deployment,
-        manifest,
-        name,
-        address,
-        provider_config,
-    )
-    .await
+    DockerInstance::try_create_new(quest, lore, deployment, manifest, name, provider_config).await
 }
 
 pub async fn create_compose_instance(
@@ -603,18 +593,6 @@ pub async fn delete_instance<F: Floxy + 'static>(
     }
 }
 
-pub async fn clear_ip_reservation(vault: Arc<Vault>, ip_addr: IpAddr) {
-    vault
-        .reservation()
-        .reserve_instance_pouch_mut()
-        .grab()
-        .await
-        .instance_pouch_mut
-        .as_mut()
-        .expect("Vault reservations should never fail")
-        .clear_ip_address_reservation(ip_addr);
-}
-
 pub async fn make_ipv4_reservation(
     vault: Arc<Vault>,
     network: Ipv4NetworkAccess,
@@ -857,6 +835,10 @@ pub mod tests {
         deployment
             .expect_instance_status()
             .returning(|_| Ok(InstanceStatus::Running));
+        deployment
+            .expect_instance_default_address()
+            .times(1)
+            .returning(|_, _| Ok(Some(IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20)))));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = vault::tests::create_test_vault(
             HashMap::from([(RUNNING_INSTANCE, deployment)]),
@@ -1169,53 +1151,6 @@ pub mod tests {
         .unwrap();
         assert_eq!(
             make_ipv4_reservation(vault, network).await,
-            Some(Ipv4Addr::new(10, 18, 102, 2)),
-        );
-    }
-
-    #[tokio::test]
-    async fn clear_ip_reservation_test() {
-        let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        let network = Ipv4NetworkAccess::try_new(
-            Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
-            Ipv4Addr::new(10, 18, 102, 1),
-        )
-        .unwrap();
-        assert_eq!(
-            vault
-                .reservation()
-                .reserve_instance_pouch_mut()
-                .grab()
-                .await
-                .instance_pouch_mut
-                .as_mut()
-                .unwrap()
-                .reserve_free_ipv4_address(network),
-            Some(Ipv4Addr::new(10, 18, 102, 2)),
-        );
-        assert_eq!(
-            vault
-                .reservation()
-                .reserve_instance_pouch_mut()
-                .grab()
-                .await
-                .instance_pouch_mut
-                .as_mut()
-                .unwrap()
-                .reserve_free_ipv4_address(network),
-            Some(Ipv4Addr::new(10, 18, 102, 3)),
-        );
-        clear_ip_reservation(vault.clone(), IpAddr::V4(Ipv4Addr::new(10, 18, 102, 2))).await;
-        assert_eq!(
-            vault
-                .reservation()
-                .reserve_instance_pouch_mut()
-                .grab()
-                .await
-                .instance_pouch_mut
-                .as_mut()
-                .unwrap()
-                .reserve_free_ipv4_address(network),
             Some(Ipv4Addr::new(10, 18, 102, 2)),
         );
     }

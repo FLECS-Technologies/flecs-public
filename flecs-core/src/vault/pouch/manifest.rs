@@ -150,6 +150,7 @@ pub mod tests {
             editor_manifest(),
             network_manifest(),
             mount_manifest(),
+            volumes_manifest(),
         ]
     }
 
@@ -299,6 +300,20 @@ pub mod tests {
             "volumes": [
                 "/etc/config:/etc/config",
                 "/log/app-logs:/log"
+            ]
+        });
+        manifest_from_json(&json)
+    }
+
+    pub fn volumes_manifest() -> AppManifest {
+        let json = serde_json::json!({
+            "_schemaVersion": "3.0.0",
+            "app": "tech.flecs.volumes",
+            "version": "0.4.0",
+            "image": "flecs.azurecr.io/tech.flecs.mount",
+            "volumes": [
+                "config:/etc/config",
+                "log:/log"
             ]
         });
         manifest_from_json(&json)
