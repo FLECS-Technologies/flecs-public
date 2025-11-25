@@ -2188,12 +2188,8 @@ where
 }
 
 #[tracing::instrument(skip_all)]
-fn imports_post_validation(
-    header_params: models::ImportsPostHeaderParams,
-) -> std::result::Result<(models::ImportsPostHeaderParams,), ValidationErrors> {
-    header_params.validate()?;
-
-    Ok((header_params,))
+fn imports_post_validation() -> std::result::Result<(), ValidationErrors> {
+    Ok(())
 }
 /// ImportsPost - POST /v2/imports
 #[tracing::instrument(skip_all)]
@@ -2201,7 +2197,6 @@ async fn imports_post<I, A>(
     method: Method,
     host: Host,
     cookies: CookieJar,
-    headers: HeaderMap,
     State(api_impl): State<I>,
     body: Multipart,
 ) -> Result<Response, StatusCode>
@@ -2209,49 +2204,12 @@ where
     I: AsRef<A> + Send + Sync,
     A: apis::flecsport::Flecsport,
 {
-    // Header parameters
-    let header_params = {
-        let header_content_disposition =
-            headers.get(HeaderName::from_static("content-disposition"));
-
-        let header_content_disposition = match header_content_disposition {
-            Some(v) => match header::IntoHeaderValue::<String>::try_from((*v).clone()) {
-                Ok(result) => result.0,
-                Err(err) => {
-                    return Response::builder()
-                        .status(StatusCode::BAD_REQUEST)
-                        .body(Body::from(format!(
-                            "Invalid header Content-Disposition - {}",
-                            err
-                        )))
-                        .map_err(|e| {
-                            error!(error = ?e);
-                            StatusCode::INTERNAL_SERVER_ERROR
-                        });
-                }
-            },
-            None => {
-                return Response::builder()
-                    .status(StatusCode::BAD_REQUEST)
-                    .body(Body::from("Missing required header Content-Disposition"))
-                    .map_err(|e| {
-                        error!(error = ?e);
-                        StatusCode::INTERNAL_SERVER_ERROR
-                    });
-            }
-        };
-
-        models::ImportsPostHeaderParams {
-            content_disposition: header_content_disposition,
-        }
-    };
-
     #[allow(clippy::redundant_closure)]
-    let validation = tokio::task::spawn_blocking(move || imports_post_validation(header_params))
+    let validation = tokio::task::spawn_blocking(move || imports_post_validation())
         .await
         .unwrap();
 
-    let Ok((header_params,)) = validation else {
+    let Ok(()) = validation else {
         return Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .body(Body::from(validation.unwrap_err().to_string()))
@@ -2260,7 +2218,7 @@ where
 
     let result = api_impl
         .as_ref()
-        .imports_post(method, host, cookies, header_params, body)
+        .imports_post(method, host, cookies, body)
         .await;
 
     let mut response = Response::builder();
