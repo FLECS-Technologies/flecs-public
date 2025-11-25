@@ -22,7 +22,6 @@ use flecsd_axum_server::apis::flecsport::{
 };
 use flecsd_axum_server::models::{
     ExportRequest, ExportsExportIdDeletePathParams, ExportsExportIdGetPathParams,
-    ImportsPostHeaderParams,
 };
 use http::Method;
 
@@ -106,7 +105,6 @@ impl<
         _method: Method,
         _host: Host,
         _cookies: CookieJar,
-        _header_params: ImportsPostHeaderParams,
         body: Multipart,
     ) -> Result<ImportsPostResponse, ()> {
         Ok(super::api::v2::imports::post(

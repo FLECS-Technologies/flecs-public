@@ -1423,13 +1423,6 @@ paths:
     post:
       tags: [ "Flecsport" ]
       summary: Upload and import an export file
-      parameters:
-        - name: Content-Disposition
-          description: File name of the export, e.g. my-export.tar
-          in: header
-          required: true
-          schema:
-            $ref: '#/components/schemas/export_id'
       requestBody:
         required: true
         content:

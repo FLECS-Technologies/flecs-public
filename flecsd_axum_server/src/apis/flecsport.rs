@@ -122,7 +122,6 @@ pub trait Flecsport {
         method: Method,
         host: Host,
         cookies: CookieJar,
-        header_params: models::ImportsPostHeaderParams,
         body: Multipart,
     ) -> Result<ImportsPostResponse, ()>;
 }
