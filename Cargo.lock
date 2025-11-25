@@ -1085,6 +1085,7 @@ dependencies = [
 name = "flecs_app_manifest"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "prettyplease",
  "regress 0.10.4",
  "reqwest",
