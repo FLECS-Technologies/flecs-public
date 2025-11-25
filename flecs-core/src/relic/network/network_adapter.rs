@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use std::ffi::CStr;
 use std::mem::MaybeUninit;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use tracing::warn;
 
 #[cfg_attr(test, automock)]
 pub trait NetworkAdapterReader: Send + Sync {
@@ -232,10 +233,12 @@ impl NetworkAdapter {
                         },
                     ..
                 } => {
-                    entry.ipv4_networks.push(
-                        Ipv4Network::new_from_address_and_subnet_mask(address, subnet_mask)
-                            .map_err(|e| Error::InvalidNetwork(e.to_string()))?,
-                    );
+                    match Ipv4Network::new_from_address_and_subnet_mask(address, subnet_mask) {
+                        Ok(network) => entry.ipv4_networks.push(network),
+                        Err(e) => warn!(
+                            "Invalid ipv4 network with address {address} and subnet mask {subnet_mask}: {e}"
+                        ),
+                    }
                     entry.ip_addresses.push(address.into());
                 }
                 IfAddrsReadResult {
