@@ -1,5 +1,5 @@
 mod exportius_impl;
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::forge::time::SystemTimeExt;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::ExportLoreRef;
@@ -161,11 +161,11 @@ pub enum ArchiveError {
 pub trait Exportius: Sorcerer + 'static {
     /// Creates an export as a tar archive at the exports base path (default /var/lib/flecs/exports)
     /// with the current time as the filename.
-    async fn create_export_archive<F: Floxy + 'static>(
+    async fn create_export_archive(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         lore: ExportLoreRef,
         apps: Vec<AppKey>,
         instances: Vec<InstanceId>,
@@ -212,10 +212,10 @@ pub trait Exportius: Sorcerer + 'static {
     ///             /apps
     ///             /instances
     ///             /deployments
-    async fn create_export<F: Floxy + 'static>(
+    async fn create_export(
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         lore: ExportLoreRef,
         apps: Vec<AppKey>,
         instances: Vec<InstanceId>,
@@ -327,10 +327,10 @@ pub trait Exportius: Sorcerer + 'static {
     ///         /apps
     ///         /instances
     ///         /deployments
-    async fn export_content<F: Floxy + 'static>(
+    async fn export_content(
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         lore: ExportLoreRef,
         apps: Vec<AppKey>,
         instances: Vec<InstanceId>,
@@ -427,10 +427,10 @@ pub trait Exportius: Sorcerer + 'static {
         path: PathBuf,
     ) -> Result<(), ExportAppError>;
 
-    async fn export_instances<F: Floxy + 'static>(
+    async fn export_instances(
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instances: Vec<InstanceId>,
         path: PathBuf,
     ) -> Result<(), ExportInstanceError>;

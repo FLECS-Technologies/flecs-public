@@ -12,7 +12,6 @@ use std::sync::Arc;
 pub mod async_flecstract;
 pub mod docker;
 pub mod docker_cli;
-pub mod nginx;
 pub mod process;
 pub mod serde;
 

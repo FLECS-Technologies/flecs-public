@@ -1,4 +1,3 @@
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
 use crate::fsm::server_impl::api::v2::models::{Accepted, AdditionalInfo};
 use crate::fsm::server_impl::state::{
     FloxyState, ImportiusState, LoreState, QuestMasterState, UsbDeviceReaderState, VaultState,
@@ -19,11 +18,11 @@ use futures_util::TryFutureExt;
         (status = INTERNAL_SERVER_ERROR, description = "Internal server error", body = AdditionalInfo),
     ),
 )]
-pub async fn post<I: Importius, F: Floxy + 'static>(
+pub async fn post<I: Importius>(
     State(VaultState(vault)): State<VaultState>,
     State(LoreState(lore)): State<LoreState>,
     State(ImportiusState(importius)): State<ImportiusState<I>>,
-    State(FloxyState(floxy)): State<FloxyState<F>>,
+    State(FloxyState(floxy)): State<FloxyState>,
     State(UsbDeviceReaderState(usb_device_reader)): State<UsbDeviceReaderState>,
     State(QuestMasterState(quest_master)): State<QuestMasterState>,
 ) -> Response {
@@ -42,14 +41,7 @@ pub async fn post<I: Importius, F: Floxy + 'static>(
             ),
             move |quest| async move {
                 importius
-                    .import_archive(
-                        quest,
-                        vault,
-                        FloxyOperation::new_arc(floxy),
-                        lore,
-                        usb_device_reader,
-                        path_info,
-                    )
+                    .import_archive(quest, vault, floxy, lore, usb_device_reader, path_info)
                     .map_err(|e| anyhow::anyhow!(e))
                     .await
             },

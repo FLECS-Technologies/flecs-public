@@ -5,7 +5,7 @@ pub mod logs;
 pub mod provides;
 pub mod start;
 pub mod stop;
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::InstanceLoreRef;
@@ -26,10 +26,10 @@ use flecsd_axum_server::models::{
 use std::str::FromStr;
 use std::sync::Arc;
 
-pub async fn delete<I: Instancius + 'static, F: Floxy + 'static>(
+pub async fn delete<I: Instancius + 'static>(
     vault: Arc<Vault>,
     instancius: Arc<I>,
-    floxy: Arc<F>,
+    floxy: Arc<dyn Floxy>,
     quest_master: QuestMaster,
     path_params: DeletePathParams,
 ) -> DeleteResponse {
@@ -40,7 +40,6 @@ pub async fn delete<I: Instancius + 'static, F: Floxy + 'static>(
     {
         return DeleteResponse::Status404_NoInstanceWithThisInstance;
     }
-    let floxy = FloxyOperation::new_arc(floxy);
     match quest_master
         .lock()
         .await
@@ -76,10 +75,10 @@ pub async fn get<I: Instancius>(
     }
 }
 
-pub async fn patch<I: Instancius + 'static, F: Floxy + 'static>(
+pub async fn patch<I: Instancius + 'static>(
     vault: Arc<Vault>,
     instancius: Arc<I>,
-    floxy: Arc<F>,
+    floxy: Arc<dyn Floxy>,
     quest_master: QuestMaster,
     lore: InstanceLoreRef,
     path_params: PatchPathParams,
@@ -92,7 +91,6 @@ pub async fn patch<I: Instancius + 'static, F: Floxy + 'static>(
     {
         return PatchResponse::Status404_NoInstanceWithThisInstance;
     }
-    let floxy = FloxyOperation::new_arc(floxy);
     match quest_master
         .lock()
         .await

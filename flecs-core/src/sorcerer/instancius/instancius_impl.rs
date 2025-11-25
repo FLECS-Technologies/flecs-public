@@ -1,4 +1,4 @@
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::vec::VecExtension;
 use crate::jeweler::GetAppKey;
@@ -221,21 +221,21 @@ impl InstanciusImpl {
 
 #[async_trait]
 impl Instancius for InstanciusImpl {
-    async fn start_instance<F: Floxy>(
+    async fn start_instance(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
     ) -> anyhow::Result<()> {
         spell::instance::start_instance(quest, vault, floxy, instance_id).await
     }
 
-    async fn stop_instance<F: Floxy>(
+    async fn stop_instance(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
     ) -> anyhow::Result<()> {
         spell::instance::stop_instance(quest, vault, floxy, instance_id).await
@@ -302,11 +302,11 @@ impl Instancius for InstanciusImpl {
         spell::instance::halt_all_instances(quest, vault).await
     }
 
-    async fn shutdown_instances<F: Floxy + 'static>(
+    async fn shutdown_instances(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> anyhow::Result<()> {
         let delete_configs = quest
             .lock()
@@ -330,20 +330,20 @@ impl Instancius for InstanciusImpl {
         }
     }
 
-    async fn delete_floxy_server_configs<F: Floxy + 'static>(
+    async fn delete_floxy_server_configs(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> anyhow::Result<()> {
         spell::instance::delete_all_floxy_server_configs(quest, vault, floxy).await
     }
 
-    async fn start_all_instances_as_desired<F: Floxy + 'static>(
+    async fn start_all_instances_as_desired(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> anyhow::Result<()> {
         spell::instance::start_all_instances_as_desired(quest, vault, floxy).await
     }
@@ -530,10 +530,10 @@ impl Instancius for InstanciusImpl {
         Ok(editors)
     }
 
-    async fn put_instance_editor_path_prefix<F: Floxy + 'static>(
+    async fn put_instance_editor_path_prefix(
         &self,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         id: InstanceId,
         port: u16,
         path_prefix: String,
@@ -566,10 +566,10 @@ impl Instancius for InstanciusImpl {
         Ok(previous_path_prefix)
     }
 
-    async fn delete_instance_editor_path_prefix<F: Floxy + 'static>(
+    async fn delete_instance_editor_path_prefix(
         &self,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         id: InstanceId,
         port: u16,
     ) -> Result<Option<String>, InstanceEditorPathPrefixError> {
@@ -1156,11 +1156,11 @@ impl Instancius for InstanciusImpl {
         Ok(new_address)
     }
 
-    async fn delete_instance<F: Floxy + 'static>(
+    async fn delete_instance(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         id: InstanceId,
     ) -> anyhow::Result<()> {
         spell::instance::delete_instance(quest, vault, floxy, id).await
@@ -1209,10 +1209,10 @@ impl Instancius for InstanciusImpl {
         .await
     }
 
-    async fn redirect_editor_request<F: Floxy>(
+    async fn redirect_editor_request(
         &self,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
         port: NonZeroU16,
     ) -> anyhow::Result<RedirectEditorRequestResult> {
@@ -1268,11 +1268,11 @@ impl Instancius for InstanciusImpl {
         Ok(RedirectEditorRequestResult::Redirected(host_port))
     }
 
-    async fn update_instance<F: Floxy + 'static>(
+    async fn update_instance(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
         new_version: String,
         base_path: PathBuf,
@@ -1401,14 +1401,14 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
+            .returning(|_, _| Ok(()));
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(false));
+            .returning(|_, _| Ok(()));
         floxy
             .expect_delete_server_proxy_configs()
-            .returning(|_, _, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let vault = vault::tests::create_test_vault(
             HashMap::from([(INSTANCE_TO_DELETE, deployment)]),
             HashMap::new(),
@@ -1452,7 +1452,7 @@ pub mod tests {
     async fn stop_instance_test() {
         const INSTANCE_TO_STOP: InstanceId = vault::pouch::instance::tests::RUNNING_INSTANCE;
         let floxy = MockFloxy::new();
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+        let floxy = Arc::new(floxy);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
@@ -2201,8 +2201,8 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         InstanciusImpl::default()
             .start_instance(
                 Quest::new_synced("TestQuest".to_string()),
@@ -2233,7 +2233,7 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(
             InstanciusImpl::default()
                 .start_instance(
@@ -4096,7 +4096,7 @@ pub mod tests {
     #[tokio::test]
     async fn redirect_editor_request_instance_not_found() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(matches!(
             InstanciusImpl::default()
                 .redirect_editor_request(
@@ -4113,7 +4113,7 @@ pub mod tests {
     #[tokio::test]
     async fn redirect_editor_request_unknown_port() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(matches!(
             InstanciusImpl::default()
                 .redirect_editor_request(
@@ -4154,8 +4154,8 @@ pub mod tests {
         floxy
             .expect_add_instance_editor_redirect_to_free_port()
             .times(1)
-            .returning(|_, _, _, _| Ok((false, 125)));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _, _, _| Ok(125));
+        let floxy = Arc::new(floxy);
         assert_eq!(
             InstanciusImpl::default()
                 .redirect_editor_request(
@@ -4173,7 +4173,7 @@ pub mod tests {
     #[tokio::test]
     async fn redirect_editor_request_reverse_proxy_support() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert_eq!(
             InstanciusImpl::default()
                 .redirect_editor_request(
@@ -4207,7 +4207,7 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert_eq!(
             InstanciusImpl::default()
                 .redirect_editor_request(
@@ -4245,7 +4245,7 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert_eq!(
             InstanciusImpl::default()
                 .redirect_editor_request(
@@ -4263,7 +4263,7 @@ pub mod tests {
     #[tokio::test]
     async fn redirect_editor_request_existing_redirect() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert_eq!(
             InstanciusImpl::default()
                 .redirect_editor_request(
@@ -4297,7 +4297,7 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(
             InstanciusImpl::default()
                 .redirect_editor_request(

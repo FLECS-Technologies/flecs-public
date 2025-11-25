@@ -1,5 +1,5 @@
 use crate::enchantment::Enchantments;
-use crate::enchantment::floxy::{Floxy, FloxyImpl, FloxyOperation};
+use crate::enchantment::floxy::{Floxy, FloxyImpl};
 use crate::enchantment::quest_master::QuestMaster;
 use crate::fsm::ServerHandle;
 use crate::legacy::MigrateError;
@@ -42,13 +42,12 @@ pub struct World<
     D: Deploymento + ?Sized,
     E: Exportius + ?Sized,
     IMP: Importius + ?Sized,
-    F: Floxy,
     UDR: UsbDeviceReader,
     NAR: NetworkAdapterReader,
     NDR: NetDeviceReader,
 > {
     pub sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
-    pub enchantments: Enchantments<F>,
+    pub enchantments: Enchantments,
     pub relics: Relics<UDR, NAR, NDR>,
     pub vault: Arc<Vault>,
     pub server: ServerHandle,
@@ -68,7 +67,6 @@ pub type FlecsWorld = World<
     DeploymentoImpl,
     ExportiusImpl,
     ImportiusImpl,
-    FloxyImpl,
     UsbDeviceReaderImpl,
     NetworkAdapterReaderImpl,
     NetDeviceReaderImpl,
@@ -196,10 +194,7 @@ impl FlecsWorld {
         Self::new(
             FlecsSorcerers::default(),
             Enchantments {
-                floxy: Arc::new(
-                    FloxyImpl::from_config(lore.clone())
-                        .map_err(|e| CreateError::FloxyCreation(e.to_string()))?,
-                ),
+                floxy: Arc::new(FloxyImpl::new(lore.clone())),
                 quest_master: QuestMaster::default(),
             },
             FlecsRelics::default(),
@@ -213,10 +208,7 @@ impl FlecsWorld {
         Self::create(
             FlecsSorcerers::default(),
             Enchantments {
-                floxy: Arc::new(
-                    FloxyImpl::from_config(lore.clone())
-                        .map_err(|e| CreateError::FloxyCreation(e.to_string()))?,
-                ),
+                floxy: Arc::new(FloxyImpl::new(lore.clone())),
                 quest_master: QuestMaster::default(),
             },
             FlecsRelics::default(),
@@ -238,11 +230,10 @@ impl<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
     UDR: UsbDeviceReader + 'static,
     NAR: NetworkAdapterReader + 'static,
     NDR: NetDeviceReader + 'static,
-> World<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, UDR, NAR, NDR>
+> World<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, UDR, NAR, NDR>
 {
     pub async fn halt(self) {
         self.server.shutdown().await;
@@ -255,9 +246,7 @@ impl<
             .lock()
             .await
             .shutdown_with(|quest| async move {
-                instancius
-                    .shutdown_instances(quest, vault, FloxyOperation::new_arc(floxy))
-                    .await?;
+                instancius.shutdown_instances(quest, vault, floxy).await?;
                 Ok(QuestResult::None)
             })
             .await
@@ -266,16 +255,12 @@ impl<
             Ok(Err(e)) => error!("Failed to shutdown instances: {e}"),
             Err(e) => error!("Failed to shutdown QuestMaster: {e}"),
         }
-        match self.enchantments.floxy.stop() {
-            Ok(_) => info!("Floxy was stopped"),
-            Err(e) => error!("Failed to stop floxy: {e}"),
-        }
     }
 
     async fn startup_quest(
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instancius: Arc<I>,
         #[cfg(feature = "auth")] providius: Arc<dyn Providius>,
         #[cfg(feature = "auth")] watch: Arc<Watch>,
@@ -313,7 +298,7 @@ impl<
         let instancius = self.sorcerers.instancius.clone();
         #[cfg(feature = "auth")]
         let providius = self.sorcerers.providius.clone();
-        let floxy = FloxyOperation::new_arc(self.enchantments.floxy.clone());
+        let floxy = self.enchantments.floxy.clone();
         let vault = self.vault.clone();
         #[cfg(feature = "auth")]
         let watch = self.wall.watch.clone();
@@ -339,7 +324,7 @@ impl<
 
     pub async fn create(
         sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
-        enchantments: Enchantments<F>,
+        enchantments: Enchantments,
         relics: Relics<UDR, NAR, NDR>,
         vault: Arc<Vault>,
         lore: Arc<Lore>,
@@ -354,15 +339,11 @@ impl<
 
     pub async fn new(
         sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
-        enchantments: Enchantments<F>,
+        enchantments: Enchantments,
         relics: Relics<UDR, NAR, NDR>,
         vault: Arc<Vault>,
         lore: Arc<Lore>,
     ) -> Result<Self, CreateError> {
-        enchantments
-            .floxy
-            .start()
-            .map_err(|e| CreateError::FloxyStartup(e.to_string()))?;
         vault.open().await;
         #[cfg(feature = "auth")]
         let wall = Self::build_wall(lore.clone()).await?;

@@ -1,5 +1,5 @@
 use super::AppRaiser;
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::app::{AppStatus, Token};
 use crate::jeweler::gem::app::App;
@@ -24,11 +24,11 @@ impl Sorcerer for AppraiserImpl {}
 
 #[async_trait]
 impl AppRaiser for AppraiserImpl {
-    async fn uninstall_app<F: Floxy + 'static>(
+    async fn uninstall_app(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         app_key: AppKey,
     ) -> anyhow::Result<()> {
         let instances_to_delete =

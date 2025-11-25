@@ -1,4 +1,4 @@
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::instancius::RedirectEditorRequestResult::*;
@@ -9,16 +9,16 @@ use flecsd_axum_server::models;
 use std::num::NonZeroU16;
 use std::sync::Arc;
 
-pub async fn get<F: Floxy + 'static, I: Instancius>(
+pub async fn get<I: Instancius>(
     vault: Arc<Vault>,
-    floxy: Arc<F>,
+    floxy: Arc<dyn Floxy>,
     instancius: Arc<I>,
     host: Host,
     instance_id: InstanceId,
     port: NonZeroU16,
 ) -> Result<GetResponse, ()> {
     match instancius
-        .redirect_editor_request(vault, FloxyOperation::new_arc(floxy), instance_id, port)
+        .redirect_editor_request(vault, floxy, instance_id, port)
         .await
     {
         Err(e) => Ok(GetResponse::Status500_InternalServerError(
@@ -58,7 +58,7 @@ mod tests {
     async fn get_500() {
         let mut instancius = MockInstancius::new();
         instancius
-            .expect_redirect_editor_request::<MockFloxy>()
+            .expect_redirect_editor_request()
             .once()
             .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
         assert!(matches!(
@@ -79,7 +79,7 @@ mod tests {
     async fn get_302() {
         let mut instancius = MockInstancius::new();
         instancius
-            .expect_redirect_editor_request::<MockFloxy>()
+            .expect_redirect_editor_request()
             .withf(|_, _, id, port| id.value == 6 && port.get() == 1234)
             .once()
             .returning(|_, _, _, _| Ok(Redirected(125)));
@@ -103,7 +103,7 @@ mod tests {
     async fn get_404_instance_not_found() {
         let mut instancius = MockInstancius::new();
         instancius
-            .expect_redirect_editor_request::<MockFloxy>()
+            .expect_redirect_editor_request()
             .withf(|_, _, id, port| id.value == 80 && port.get() == 100)
             .once()
             .returning(|_, _, _, _| Ok(InstanceNotFound));
@@ -125,7 +125,7 @@ mod tests {
     async fn get_404_unknown_port() {
         let mut instancius = MockInstancius::new();
         instancius
-            .expect_redirect_editor_request::<MockFloxy>()
+            .expect_redirect_editor_request()
             .withf(|_, _, id, port| id.value == 1 && port.get() == 60)
             .once()
             .returning(|_, _, _, _| Ok(UnknownPort));
@@ -147,7 +147,7 @@ mod tests {
     async fn get_400_reverse_proxy_support() {
         let mut instancius = MockInstancius::new();
         instancius
-            .expect_redirect_editor_request::<MockFloxy>()
+            .expect_redirect_editor_request()
             .withf(|_, _, id, port| id.value == 6 && port.get() == 5678)
             .once()
             .returning(|_, _, _, _| Ok(EditorSupportsReverseProxy));
@@ -171,7 +171,7 @@ mod tests {
     async fn get_400_instance_stopped() {
         let mut instancius = MockInstancius::new();
         instancius
-            .expect_redirect_editor_request::<MockFloxy>()
+            .expect_redirect_editor_request()
             .withf(|_, _, id, port| id.value == 6 && port.get() == 1234)
             .once()
             .returning(|_, _, _, _| Ok(InstanceNotRunning));
@@ -193,7 +193,7 @@ mod tests {
     async fn get_400_not_connected_to_network() {
         let mut instancius = MockInstancius::new();
         instancius
-            .expect_redirect_editor_request::<MockFloxy>()
+            .expect_redirect_editor_request()
             .withf(|_, _, id, port| id.value == 1 && port.get() == 1234)
             .once()
             .returning(|_, _, _, _| Ok(InstanceNotConnectedToNetwork));

@@ -1,4 +1,4 @@
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::forge::axum::{MultipartExt, WriteMultipartError};
 use crate::lore::Lore;
@@ -11,11 +11,11 @@ use flecsd_axum_server::models;
 use futures_util::TryFutureExt;
 use std::sync::Arc;
 
-pub async fn post<I: Importius, F: Floxy + 'static, U: UsbDeviceReader + 'static>(
+pub async fn post<I: Importius, U: UsbDeviceReader + 'static>(
     vault: Arc<Vault>,
     lore: Arc<Lore>,
     importius: Arc<I>,
-    floxy: Arc<F>,
+    floxy: Arc<dyn Floxy>,
     usb_device_reader: Arc<U>,
     quest_master: QuestMaster,
     request: Multipart,
@@ -40,14 +40,7 @@ pub async fn post<I: Importius, F: Floxy + 'static, U: UsbDeviceReader + 'static
                     format!("Importing {:?}", path_info.archive_path),
                     move |quest| async move {
                         importius
-                            .import_archive(
-                                quest,
-                                vault,
-                                FloxyOperation::new_arc(floxy),
-                                lore,
-                                usb_device_reader,
-                                path_info,
-                            )
+                            .import_archive(quest, vault, floxy, lore, usb_device_reader, path_info)
                             .map_err(|e| anyhow::anyhow!(e))
                             .await
                     },

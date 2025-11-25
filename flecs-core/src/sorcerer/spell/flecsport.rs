@@ -1,4 +1,4 @@
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::ExportLoreRef;
@@ -34,10 +34,10 @@ pub enum ExportDeploymentError {
     IO(#[from] std::io::Error),
 }
 
-pub async fn export_instance<F: Floxy>(
+pub async fn export_instance(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_id: InstanceId,
     path: PathBuf,
 ) -> Result<(), ExportInstanceError> {
@@ -57,10 +57,10 @@ pub async fn export_instance<F: Floxy>(
     }
 }
 
-pub async fn export_instances<F: Floxy + 'static>(
+pub async fn export_instances(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_ids: Vec<InstanceId>,
     path: PathBuf,
 ) -> Result<(), ExportInstanceError> {
@@ -261,7 +261,7 @@ mod tests {
             (*instance_id, deployment)
         }));
         let vault = create_test_vault(deployments, HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         export_instances(
             Quest::new_synced("TestQuest"),
             vault,
@@ -285,7 +285,7 @@ mod tests {
         const INSTANCE_ID: InstanceId = InstanceId::new(10);
         let path = testdir!().join("exports");
         let vault = create_empty_test_vault();
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(
             export_instances(
                 Quest::new_synced("TestQuest"),
@@ -324,7 +324,7 @@ mod tests {
             HashMap::new(),
             None,
         );
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         export_instance(
             Quest::new_synced("TestQuest"),
             vault,
@@ -342,7 +342,7 @@ mod tests {
         const INSTANCE_ID: InstanceId = UNKNOWN_INSTANCE_2;
         let path = testdir!().join("exports");
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(matches!(
             export_instance(
                 Quest::new_synced("TestQuest"),
@@ -363,7 +363,7 @@ mod tests {
         // Provoke conflict by creating directory with path of an exported instance json
         std::fs::create_dir_all(path.join("instance.json")).unwrap();
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(
             export_instance(
                 Quest::new_synced("TestQuest"),

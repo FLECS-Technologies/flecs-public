@@ -1,6 +1,6 @@
 mod instancius_impl;
 pub use super::Result;
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem;
 use crate::jeweler::gem::instance::docker::config::{
     InstancePortMapping, TransportProtocol, UsbPathConfig,
@@ -137,19 +137,19 @@ impl From<anyhow::Error> for ConnectInstanceConfigNetworkError {
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait Instancius: Sorcerer {
-    async fn start_instance<F: Floxy + 'static>(
+    async fn start_instance(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
     ) -> Result<()>;
 
-    async fn stop_instance<F: Floxy + 'static>(
+    async fn stop_instance(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
     ) -> Result<()>;
 
@@ -181,25 +181,25 @@ pub trait Instancius: Sorcerer {
 
     async fn halt_all_instances(&self, quest: SyncQuest, vault: Arc<Vault>) -> Result<()>;
 
-    async fn shutdown_instances<F: Floxy + 'static>(
+    async fn shutdown_instances(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> Result<()>;
 
-    async fn delete_floxy_server_configs<F: Floxy + 'static>(
+    async fn delete_floxy_server_configs(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> Result<()>;
 
-    async fn start_all_instances_as_desired<F: Floxy + 'static>(
+    async fn start_all_instances_as_desired(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> Result<()>;
 
     async fn create_instance(
@@ -232,19 +232,19 @@ pub trait Instancius: Sorcerer {
         id: InstanceId,
     ) -> Result<Vec<flecsd_axum_server::models::InstanceEditor>, InstanceEditorPathPrefixError>;
 
-    async fn put_instance_editor_path_prefix<F: Floxy + 'static>(
+    async fn put_instance_editor_path_prefix(
         &self,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         id: InstanceId,
         port: u16,
         path_prefix: String,
     ) -> Result<Option<String>, InstanceEditorPathPrefixError>;
 
-    async fn delete_instance_editor_path_prefix<F: Floxy + 'static>(
+    async fn delete_instance_editor_path_prefix(
         &self,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         id: InstanceId,
         port: u16,
     ) -> Result<Option<String>, InstanceEditorPathPrefixError>;
@@ -459,11 +459,11 @@ pub trait Instancius: Sorcerer {
         address: Option<Ipv4Addr>,
     ) -> Result<IpAddr, ConnectInstanceConfigNetworkError>;
 
-    async fn delete_instance<F: Floxy + 'static>(
+    async fn delete_instance(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         id: InstanceId,
     ) -> Result<()>;
 
@@ -478,19 +478,19 @@ pub trait Instancius: Sorcerer {
         label_name: String,
     ) -> Option<Option<Option<String>>>;
 
-    async fn redirect_editor_request<F: Floxy + 'static>(
+    async fn redirect_editor_request(
         &self,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
         port: NonZeroU16,
     ) -> Result<RedirectEditorRequestResult>;
 
-    async fn update_instance<F: Floxy + 'static>(
+    async fn update_instance(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
         new_version: String,
         base_path: PathBuf,

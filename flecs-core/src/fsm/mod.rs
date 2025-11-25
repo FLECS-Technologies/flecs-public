@@ -2,7 +2,6 @@ pub mod console_client;
 mod server_impl;
 pub mod world;
 use crate::enchantment::Enchantments;
-use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::DeviceReaders;
 use crate::lore::{Listener, Lore};
 use crate::relic::device::net::NetDeviceReaderImpl;
@@ -198,11 +197,10 @@ async fn create_service<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
     C,
 >(
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
-    enchantments: Enchantments<F>,
+    enchantments: Enchantments,
     vault: Arc<Vault>,
     lore: Arc<Lore>,
     #[cfg(feature = "auth")] wall: wall::Wall,
@@ -303,7 +301,7 @@ async fn create_service<
         .route(
             "/v2/providers/auth/first-time-setup/flecsport",
             axum::routing::post(
-                server_impl::api::v2::providers::auth::first_time_setup::flecsport::post::<IMP, F>,
+                server_impl::api::v2::providers::auth::first_time_setup::flecsport::post::<IMP>,
             ),
         )
         .route(
@@ -484,10 +482,9 @@ pub async fn spawn_server<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
 >(
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
-    enchantments: Enchantments<F>,
+    enchantments: Enchantments,
     vault: Arc<Vault>,
     lore: Arc<Lore>,
     #[cfg(feature = "auth")] wall: wall::Wall,

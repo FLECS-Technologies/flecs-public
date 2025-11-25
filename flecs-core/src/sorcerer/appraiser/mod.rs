@@ -1,6 +1,6 @@
 mod appraiser_impl;
 pub use super::Result;
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
@@ -17,11 +17,11 @@ use std::sync::Arc;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait AppRaiser: Sorcerer {
-    async fn uninstall_app<F: Floxy + 'static>(
+    async fn uninstall_app(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         app_key: AppKey,
     ) -> Result<()>;
 

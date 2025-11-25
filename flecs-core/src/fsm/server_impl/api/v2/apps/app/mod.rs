@@ -1,4 +1,4 @@
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
@@ -32,9 +32,9 @@ pub async fn get<A: AppRaiser>(
     }
 }
 
-pub async fn delete<A: AppRaiser + 'static, F: Floxy + 'static>(
+pub async fn delete<A: AppRaiser + 'static>(
     vault: Arc<Vault>,
-    floxy: Arc<F>,
+    floxy: Arc<dyn Floxy>,
     appraiser: Arc<A>,
     quest_master: QuestMaster,
     path_params: DeletePathParams,
@@ -60,7 +60,6 @@ pub async fn delete<A: AppRaiser + 'static, F: Floxy + 'static>(
                 return Ok(AppsAppDeleteResponse::Status404_NoSuchAppOrApp);
             }
             let vault = vault.clone();
-            let floxy = FloxyOperation::new_arc(floxy);
             match quest_master
                 .lock()
                 .await

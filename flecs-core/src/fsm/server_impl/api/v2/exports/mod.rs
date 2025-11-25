@@ -1,5 +1,5 @@
 pub mod export_id;
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::ExportLoreRef;
@@ -26,10 +26,10 @@ pub async fn get<E: Exportius>(exportius: Arc<E>, lore: ExportLoreRef) -> GetRes
     }
 }
 
-pub async fn post<E: Exportius, F: Floxy + 'static>(
+pub async fn post<E: Exportius>(
     vault: Arc<Vault>,
     exportius: Arc<E>,
-    floxy: Arc<F>,
+    floxy: Arc<dyn Floxy>,
     quest_master: QuestMaster,
     lore: ExportLoreRef,
     request: PostRequest,
@@ -46,14 +46,7 @@ pub async fn post<E: Exportius, F: Floxy + 'static>(
         .await
         .schedule_quest_with_result("Create export".to_string(), |quest| async move {
             let id = exportius
-                .create_export_archive(
-                    quest,
-                    vault,
-                    FloxyOperation::new_arc(floxy),
-                    lore,
-                    apps,
-                    instance_ids,
-                )
+                .create_export_archive(quest, vault, floxy, lore, apps, instance_ids)
                 .await?;
             Ok(QuestResult::ExportId(id))
         })

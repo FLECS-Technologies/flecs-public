@@ -11,7 +11,6 @@ mod quests;
 pub mod state;
 mod system;
 use crate::enchantment::Enchantments;
-use crate::enchantment::floxy::Floxy;
 use crate::fsm::console_client::ConsoleClient;
 use crate::lore::Lore;
 use crate::relic::device::net::NetDeviceReader;
@@ -66,14 +65,13 @@ pub struct ServerImpl<
     D: Deploymento,
     E: Exportius,
     IMP: Importius,
-    F: Floxy,
     T: UsbDeviceReader,
     NET: NetworkAdapterReader,
     NetDev: NetDeviceReader,
 > {
     vault: Arc<Vault>,
     lore: Arc<Lore>,
-    enchantments: Enchantments<F>,
+    enchantments: Enchantments,
     device_readers: DeviceReaders<T, NET, NetDev>,
     console_client: ConsoleClient,
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
@@ -92,17 +90,16 @@ impl<
     D: Deploymento,
     E: Exportius,
     IMP: Importius,
-    F: Floxy,
     T: UsbDeviceReader,
     NET: NetworkAdapterReader,
     NetDev: NetDeviceReader,
-> ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
+> ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, T, NET, NetDev>
 {
     pub async fn new(
         vault: Arc<Vault>,
         lore: Arc<Lore>,
         sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
-        enchantments: Enchantments<F>,
+        enchantments: Enchantments,
         device_readers: DeviceReaders<T, NET, NetDev>,
         #[cfg(feature = "auth")] wall: Wall,
     ) -> Self {
