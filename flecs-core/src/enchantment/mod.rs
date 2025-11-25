@@ -8,12 +8,12 @@ pub mod quest_master;
 
 pub trait Enchantment: Send + Sync + Display {}
 
-pub struct Enchantments<F: Floxy> {
-    pub floxy: Arc<F>,
+pub struct Enchantments {
+    pub floxy: Arc<dyn Floxy>,
     pub quest_master: QuestMaster,
 }
 
-impl<F: Floxy> Clone for Enchantments<F> {
+impl Clone for Enchantments {
     fn clone(&self) -> Self {
         Self {
             floxy: self.floxy.clone(),
@@ -23,8 +23,8 @@ impl<F: Floxy> Clone for Enchantments<F> {
 }
 
 #[cfg(test)]
-impl Enchantments<floxy::MockFloxy> {
-    pub fn test_instance() -> Enchantments<floxy::MockFloxy> {
+impl Enchantments {
+    pub fn test_instance() -> Enchantments {
         Self {
             floxy: Arc::new(floxy::MockFloxy::new()),
             quest_master: Default::default(),

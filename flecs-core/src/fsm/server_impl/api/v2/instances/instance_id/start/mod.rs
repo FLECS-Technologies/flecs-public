@@ -1,4 +1,4 @@
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::sorcerer::instancius::Instancius;
@@ -9,10 +9,10 @@ use flecsd_axum_server::models::InstancesInstanceIdStartPostPathParams as PostPa
 use std::str::FromStr;
 use std::sync::Arc;
 
-pub async fn post<I: Instancius + 'static, F: Floxy + 'static>(
+pub async fn post<I: Instancius + 'static>(
     vault: Arc<Vault>,
     instancius: Arc<I>,
-    floxy: Arc<F>,
+    floxy: Arc<dyn Floxy>,
     quest_master: QuestMaster,
     path_params: PostPathParams,
 ) -> Result<PostResponse, ()> {
@@ -23,7 +23,6 @@ pub async fn post<I: Instancius + 'static, F: Floxy + 'static>(
     {
         return Ok(PostResponse::Status404_NoInstanceWithThisInstance);
     }
-    let floxy = FloxyOperation::new_arc(floxy);
     let quest_id = quest_master
         .lock()
         .await

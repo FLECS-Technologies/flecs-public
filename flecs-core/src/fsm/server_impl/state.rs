@@ -31,7 +31,6 @@ impl<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
 >
     FromRef<
         Arc<
@@ -46,7 +45,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -67,7 +65,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -91,7 +88,6 @@ impl<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
 >
     FromRef<
         Arc<
@@ -106,7 +102,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -127,7 +122,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -153,7 +147,6 @@ impl<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
 >
     FromRef<
         Arc<
@@ -168,7 +161,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -189,7 +181,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -215,7 +206,6 @@ impl<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
 >
     FromRef<
         Arc<
@@ -230,7 +220,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -251,7 +240,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -263,7 +251,7 @@ impl<
 }
 
 #[cfg(feature = "auth")]
-pub struct FloxyState<F: Floxy + 'static>(pub Arc<F>);
+pub struct FloxyState(pub Arc<dyn Floxy>);
 
 #[cfg(feature = "auth")]
 impl<
@@ -277,7 +265,6 @@ impl<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
 >
     FromRef<
         Arc<
@@ -292,13 +279,12 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
             >,
         >,
-    > for FloxyState<F>
+    > for FloxyState
 {
     fn from_ref(
         input: &Arc<
@@ -313,7 +299,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -339,7 +324,6 @@ impl<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
 >
     FromRef<
         Arc<
@@ -354,7 +338,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -375,7 +358,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -401,7 +383,6 @@ impl<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
 >
     FromRef<
         Arc<
@@ -416,7 +397,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -437,7 +417,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -463,7 +442,6 @@ impl<
     D: Deploymento + 'static,
     E: Exportius + 'static,
     IMP: Importius + 'static,
-    F: Floxy + 'static,
 >
     FromRef<
         Arc<
@@ -478,7 +456,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,
@@ -499,7 +476,6 @@ impl<
                 D,
                 E,
                 IMP,
-                F,
                 UsbDeviceReaderImpl,
                 NetworkAdapterReaderImpl,
                 NetDeviceReaderImpl,

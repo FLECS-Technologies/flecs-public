@@ -1,4 +1,3 @@
-use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::ServerImpl;
 use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
@@ -39,11 +38,10 @@ impl<
     D: Deploymento,
     E: Exportius,
     IMP: Importius,
-    F: Floxy,
     T: UsbDeviceReader,
     NET: NetworkAdapterReader + 'static,
     NetDev: NetDeviceReader + 'static,
-> System for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
+> System for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, T, NET, NetDev>
 {
     async fn system_devices_get(
         &self,

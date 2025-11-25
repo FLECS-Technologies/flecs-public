@@ -1,6 +1,6 @@
 pub mod config;
 use super::{InstanceCommon, InstanceId, Logs, StoredProviderReference};
-use crate::enchantment::floxy::{AdditionalLocationInfo, Floxy, FloxyOperation};
+use crate::enchantment::floxy::{AdditionalLocationInfo, Floxy};
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::ipaddr::BitComplementExt;
 use crate::forge::time::SystemTimeExt;
@@ -551,12 +551,12 @@ impl DockerInstance {
         })
     }
 
-    pub async fn start<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+    pub async fn start(&mut self, floxy: Arc<dyn Floxy>) -> anyhow::Result<()> {
         self.desired = InstanceStatus::Running;
         self.resume(floxy).await
     }
 
-    pub async fn resume<F: Floxy>(&self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+    pub async fn resume(&self, floxy: Arc<dyn Floxy>) -> anyhow::Result<()> {
         if self.desired != InstanceStatus::Running || self.is_running().await? {
             return Ok(());
         }
@@ -588,10 +588,7 @@ impl DockerInstance {
             .collect()
     }
 
-    pub async fn load_reverse_proxy_config<F: Floxy>(
-        &self,
-        floxy: Arc<FloxyOperation<F>>,
-    ) -> anyhow::Result<()> {
+    pub async fn load_reverse_proxy_config(&self, floxy: Arc<dyn Floxy>) -> anyhow::Result<()> {
         let editor_ports = self.get_reverse_proxy_editor_ports();
         if !editor_ports.is_empty() {
             if let Some(instance_ip) = self.get_default_network_address().await? {
@@ -606,9 +603,9 @@ impl DockerInstance {
         Ok(())
     }
 
-    pub async fn load_auth_provider_proxy_config<F: Floxy>(
+    pub async fn load_auth_provider_proxy_config(
         &self,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> anyhow::Result<()> {
         if let Some(auth_provider) = &self.manifest.specific_providers.auth {
             if let Some(instance_ip) = self.get_default_network_address().await? {
@@ -626,9 +623,9 @@ impl DockerInstance {
         Ok(())
     }
 
-    pub fn load_additional_locations_reverse_proxy_config<F: Floxy>(
+    pub fn load_additional_locations_reverse_proxy_config(
         &self,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> anyhow::Result<()> {
         let path_prefixes = &self.config.editor_path_prefixes;
         if !path_prefixes.is_empty() {
@@ -650,24 +647,18 @@ impl DockerInstance {
         Ok(())
     }
 
-    fn delete_additional_locations_reverse_proxy_config<F: Floxy>(
+    fn delete_additional_locations_reverse_proxy_config(
         &self,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> anyhow::Result<()> {
         floxy.delete_additional_locations_proxy_config(&self.app_key().name, self.id)
     }
 
-    fn delete_reverse_proxy_config<F: Floxy>(
-        &self,
-        floxy: Arc<FloxyOperation<F>>,
-    ) -> anyhow::Result<()> {
+    fn delete_reverse_proxy_config(&self, floxy: Arc<dyn Floxy>) -> anyhow::Result<()> {
         floxy.delete_reverse_proxy_config(&self.app_key().name, self.id)
     }
 
-    pub fn delete_server_proxy_configs<F: Floxy>(
-        &mut self,
-        floxy: Arc<FloxyOperation<F>>,
-    ) -> anyhow::Result<bool> {
+    pub fn delete_server_proxy_configs(&mut self, floxy: Arc<dyn Floxy>) -> anyhow::Result<bool> {
         let editor_ports: Vec<_> = std::mem::take(&mut self.config.mapped_editor_ports)
             .into_values()
             .collect();
@@ -679,10 +670,10 @@ impl DockerInstance {
         }
     }
 
-    pub async fn stop_and_delete<F: Floxy + 'static>(
+    pub async fn stop_and_delete(
         mut self,
         quest: SyncQuest,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> anyhow::Result<(), (anyhow::Error, Self)> {
         let result = quest
             .lock()
@@ -733,7 +724,7 @@ impl DockerInstance {
         }
     }
 
-    pub async fn stop<F: Floxy>(&mut self, floxy: Arc<FloxyOperation<F>>) -> anyhow::Result<()> {
+    pub async fn stop(&mut self, floxy: Arc<dyn Floxy>) -> anyhow::Result<()> {
         self.desired = InstanceStatus::Stopped;
         self.halt().await?;
         if let Err(e) = self.delete_server_proxy_configs(floxy) {
@@ -754,10 +745,10 @@ impl DockerInstance {
         }
     }
 
-    pub async fn delete<F: Floxy>(
+    pub async fn delete(
         mut self,
         quest: SyncQuest,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
     ) -> anyhow::Result<(), (anyhow::Error, Self)> {
         self.desired = InstanceStatus::NotCreated;
         let mut volume_ids = Vec::new();
@@ -1045,10 +1036,10 @@ impl DockerInstance {
         export_volumes_results
     }
 
-    pub async fn export<F: Floxy>(
+    pub async fn export(
         &self,
         quest: SyncQuest,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         path: &Path,
     ) -> anyhow::Result<()> {
         let is_running = self.is_running().await?;
@@ -1099,10 +1090,10 @@ impl DockerInstance {
         Ok(())
     }
 
-    pub async fn update<F: Floxy>(
+    pub async fn update(
         &mut self,
         quest: SyncQuest,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         new_manifest: Arc<AppManifestSingle>,
         base_path: &Path,
     ) -> anyhow::Result<()> {
@@ -1507,11 +1498,11 @@ pub mod tests {
         floxy
             .expect_delete_reverse_proxy_config()
             .once()
-            .returning(|_, _| Ok(false));
+            .returning(|_, _| Ok(()));
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_delete_instance()
@@ -1538,11 +1529,11 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(false));
+            .returning(|_, _| Ok(()));
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_delete_instance()
@@ -1567,11 +1558,11 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(false));
+            .returning(|_, _| Ok(()));
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_delete_instance()
@@ -1598,7 +1589,7 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(false));
+            .returning(|_, _| Ok(()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_stop_instance()
@@ -1663,7 +1654,7 @@ pub mod tests {
     async fn stop_sets_desired() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         deployment.expect_stop_instance().times(0);
         deployment
             .expect_instance_status()
@@ -1684,11 +1675,11 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(false));
+            .returning(|_, _| Ok(()));
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_stop_instance()
@@ -1723,11 +1714,11 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(false));
+            .returning(|_, _| Ok(()));
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_stop_instance()
@@ -1764,8 +1755,8 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_stop_instance()
@@ -2550,7 +2541,7 @@ pub mod tests {
     #[tokio::test]
     async fn instance_start_ok_already_running() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
@@ -2572,11 +2563,11 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_server_proxy_configs()
-            .returning(|_, _, _| Ok(false));
+            .returning(|_, _, _| Ok(()));
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
@@ -2616,8 +2607,8 @@ pub mod tests {
                     && ip == &IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20))
                     && ports == [789]
             })
-            .returning(|_, _, _, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _, _, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let instance = test_instance(
             2,
             lore,
@@ -2633,9 +2624,9 @@ pub mod tests {
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_default_address()
-            .times(1)
+            .with(predicate::always(), predicate::eq(InstanceId::new(2)))
             .returning(|_, _| Err(anyhow::anyhow!("TestError")));
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         let instance = test_instance(
             2,
             lore,
@@ -2653,7 +2644,7 @@ pub mod tests {
         };
         let instance = test_instance(2, lore, Arc::new(MockedDockerDeployment::new()), manifest);
         instance
-            .load_reverse_proxy_config(FloxyOperation::new_arc(Arc::new(MockFloxy::new())))
+            .load_reverse_proxy_config(Arc::new(MockFloxy::new()))
             .await
             .unwrap();
     }
@@ -2666,7 +2657,7 @@ pub mod tests {
             .expect_instance_default_address()
             .times(1)
             .returning(|_, _| Ok(None));
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         let instance = test_instance(
             2,
             lore,
@@ -2684,8 +2675,8 @@ pub mod tests {
             .expect_delete_reverse_proxy_config()
             .once()
             .withf(|app, id| app == "some.test.app" && id == &InstanceId::new(2))
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let instance = test_instance(
             2,
             lore,
@@ -2708,14 +2699,14 @@ pub mod tests {
                     && ports.contains(&1000)
                     && ports.contains(&20)
             })
-            .returning(|_, _, _| Ok(false));
+            .returning(|_, _, _| Ok(()));
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(false));
+            .returning(|_, _| Ok(()));
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut instance = test_instance(
             2,
             lore,
@@ -2732,8 +2723,8 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut instance = test_instance(
             2,
             lore,

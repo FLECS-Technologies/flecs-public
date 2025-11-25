@@ -3,7 +3,7 @@ pub mod docker;
 mod id;
 pub mod status;
 
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::{AppManifest, DependencyKey, FeatureKey};
@@ -209,10 +209,10 @@ impl Instance {
         }
     }
 
-    pub async fn export<F: Floxy>(
+    pub async fn export(
         &mut self,
         quest: SyncQuest,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         path: &Path,
     ) -> anyhow::Result<()> {
         tokio::fs::create_dir_all(&path).await?;
@@ -234,10 +234,10 @@ impl Instance {
         Ok(())
     }
 
-    pub async fn update<F: Floxy>(
+    pub async fn update(
         &mut self,
         quest: SyncQuest,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         manifest: AppManifest,
         backup_path: &Path,
     ) -> anyhow::Result<()> {

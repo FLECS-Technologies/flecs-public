@@ -1,5 +1,5 @@
 pub use super::{Error, Result};
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::instance::compose::ComposeInstance;
@@ -72,10 +72,10 @@ pub async fn create_compose_instance(
     Ok(ComposeInstance::try_create_new(quest, lore, deployment, manifest, name).await?)
 }
 
-pub async fn start_instance<F: Floxy>(
+pub async fn start_instance(
     _quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_id: InstanceId,
 ) -> Result<()> {
     let mut grab = vault
@@ -96,10 +96,10 @@ pub async fn start_instance<F: Floxy>(
     }
 }
 
-pub async fn resume_instance<F: Floxy>(
+pub async fn resume_instance(
     _quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_id: InstanceId,
 ) -> Result<()> {
     let grab = vault.reservation().reserve_instance_pouch().grab().await;
@@ -116,10 +116,10 @@ pub async fn resume_instance<F: Floxy>(
     }
 }
 
-pub async fn stop_instance<F: Floxy>(
+pub async fn stop_instance(
     _quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_id: InstanceId,
 ) -> Result<()> {
     let GrabbedPouches {
@@ -159,10 +159,10 @@ pub async fn stop_instance<F: Floxy>(
     }
 }
 
-pub async fn stop_instances<F: Floxy + 'static>(
+pub async fn stop_instances(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_ids: Vec<InstanceId>,
 ) -> Result<()> {
     let mut results = Vec::new();
@@ -185,10 +185,10 @@ pub async fn stop_instances<F: Floxy + 'static>(
 }
 
 /// The same as [stop_instances] but all instance_ids not in the vault are ignored
-pub async fn stop_existing_instances<F: Floxy + 'static>(
+pub async fn stop_existing_instances(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_ids: Vec<InstanceId>,
 ) -> Result<()> {
     let instance_ids: Vec<_> = {
@@ -241,10 +241,10 @@ pub async fn halt_all_instances(quest: SyncQuest, vault: Arc<Vault>) -> Result<(
         })
 }
 
-pub async fn delete_all_floxy_server_configs<F: Floxy + 'static>(
+pub async fn delete_all_floxy_server_configs(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
 ) -> anyhow::Result<()> {
     let mut halt_results = Vec::new();
     {
@@ -278,10 +278,10 @@ pub async fn delete_all_floxy_server_configs<F: Floxy + 'static>(
     Ok(())
 }
 
-async fn delete_floxy_server_configs<F: Floxy + 'static>(
+async fn delete_floxy_server_configs(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_id: InstanceId,
 ) -> anyhow::Result<()> {
     let mut grab = vault
@@ -307,10 +307,10 @@ async fn delete_floxy_server_configs<F: Floxy + 'static>(
     Ok(())
 }
 
-pub async fn start_all_instances_as_desired<F: Floxy + 'static>(
+pub async fn start_all_instances_as_desired(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
 ) -> Result<()> {
     let mut instances_to_start = Vec::new();
     let mut start_results = Vec::new();
@@ -453,10 +453,10 @@ pub async fn get_instance_ids_by_app_key(vault: Arc<Vault>, key: AppKey) -> Vec<
         })
 }
 
-pub async fn delete_instances<F: Floxy + 'static>(
+pub async fn delete_instances(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_ids: Vec<InstanceId>,
 ) -> Result<(), Vec<(Error, InstanceId)>> {
     if instance_ids.is_empty() {
@@ -548,10 +548,10 @@ pub fn validate_no_dependents(
     }
 }
 
-pub async fn delete_instance<F: Floxy + 'static>(
+pub async fn delete_instance(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     id: InstanceId,
 ) -> Result<()> {
     let GrabbedPouches {
@@ -765,10 +765,10 @@ pub async fn disconnect_instance_from_network(
     }
 }
 
-pub async fn update_instance<F: Floxy + 'static>(
+pub async fn update_instance(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     instance_id: InstanceId,
     new_version: AppKey,
     base_path: PathBuf,
@@ -1064,8 +1064,8 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         start_instance(
             Quest::new_synced("TestQuest".to_string()),
             vault,
@@ -1096,7 +1096,7 @@ pub mod tests {
             HashMap::new(),
             None,
         );
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(
             start_instance(
                 Quest::new_synced("TestQuest".to_string()),
@@ -1112,7 +1112,7 @@ pub mod tests {
     #[tokio::test]
     async fn start_instance_not_found() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(
             start_instance(
                 Quest::new_synced("TestQuest".to_string()),
@@ -1128,7 +1128,7 @@ pub mod tests {
     #[tokio::test]
     async fn stop_instance_not_found() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
-        let floxy = FloxyOperation::new_arc(Arc::new(MockFloxy::new()));
+        let floxy = Arc::new(MockFloxy::new());
         assert!(
             stop_instance(
                 Quest::new_synced("TestQuest".to_string()),
@@ -1289,8 +1289,8 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         start_all_instances_as_desired(Quest::new_synced("TestQuest".to_string()), vault, floxy)
             .await
             .unwrap();
@@ -1356,8 +1356,8 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(false));
-        let floxy = FloxyOperation::new_arc(Arc::new(floxy));
+            .returning(|_, _| Ok(()));
+        let floxy = Arc::new(floxy);
         assert!(
             start_all_instances_as_desired(
                 Quest::new_synced("TestQuest".to_string()),

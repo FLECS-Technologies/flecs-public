@@ -1,4 +1,3 @@
-use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::ServerImpl;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::relic::device::net::NetDeviceReader;
@@ -116,11 +115,10 @@ impl<
     D: Deploymento,
     E: Exportius,
     IMP: Importius,
-    F: Floxy + 'static,
     T: UsbDeviceReader + 'static,
     NET: NetworkAdapterReader + 'static,
     NetDev: NetDeviceReader,
-> Instances for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, F, T, NET, NetDev>
+> Instances for ServerImpl<APP, AUTH, I, L, Q, M, SYS, D, E, IMP, T, NET, NetDev>
 {
     async fn instances_create_post(
         &self,

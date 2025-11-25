@@ -1,10 +1,7 @@
-use crate::enchantment::Enchantment;
 use crate::enchantment::floxy::{AdditionalLocationInfo, Floxy};
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::{FloxyLore, FloxyLoreRef};
 use crate::relic::network::get_random_free_port;
-use crate::relic::nginx::Nginx;
-use anyhow::Error;
 use std::fmt::{Display, Formatter};
 use std::fs::DirEntry;
 use std::net::IpAddr;
@@ -14,38 +11,23 @@ use tracing::{debug, error, info};
 
 const CONFIG_EXTENSION: &str = "conf";
 pub struct FloxyImpl {
-    nginx: Nginx,
     lore: Arc<dyn AsRef<FloxyLore> + Sync + Send>,
 }
 
-impl Enchantment for FloxyImpl {}
-
 impl Floxy for FloxyImpl {
-    fn start(&self) -> anyhow::Result<()> {
-        std::fs::create_dir_all(self.lore().server_config_path())?;
-        std::fs::create_dir_all(self.lore().instance_config_path())?;
-        self.clear_server_configs()?;
-        self.clear_instance_configs()?;
-        self.nginx.start()
-    }
-
-    fn stop(&self) -> anyhow::Result<()> {
-        self.nginx.graceful_shutdown()
-    }
-
     fn add_instance_reverse_proxy_config(
         &self,
         app_name: &str,
         instance_id: InstanceId,
         instance_ip: IpAddr,
         dest_ports: &[u16],
-    ) -> anyhow::Result<bool> {
+    ) -> anyhow::Result<()> {
         let config_content =
             Self::create_instance_reverse_proxy_config(instance_id, instance_ip, dest_ports.iter());
         let config_path = self.build_instance_config_path(app_name, instance_id);
-        let config_changed = self.add_reverse_proxy_config(&config_content, &config_path)?;
+        self.add_reverse_proxy_config(&config_content, &config_path)?;
         debug!("Added reverse proxy config for instance {instance_id} at {config_path:?}");
-        Ok(config_changed)
+        Ok(())
     }
 
     fn add_additional_locations_proxy_config(
@@ -53,32 +35,32 @@ impl Floxy for FloxyImpl {
         app_name: &str,
         instance_id: InstanceId,
         additional_locations: &[AdditionalLocationInfo],
-    ) -> anyhow::Result<bool> {
+    ) -> anyhow::Result<()> {
         let config_content =
             Self::create_additional_location_proxy_config(instance_id, additional_locations.iter());
         let config_path = self.build_instance_locations_config_path(app_name, instance_id);
-        let config_changed = self.add_reverse_proxy_config(&config_content, &config_path)?;
+        self.add_reverse_proxy_config(&config_content, &config_path)?;
         debug!(
             "Added additional location proxy config for instance {instance_id} at {config_path:?}"
         );
-        Ok(config_changed)
+        Ok(())
     }
 
     fn delete_additional_locations_proxy_config(
         &self,
         app_name: &str,
         instance_id: InstanceId,
-    ) -> anyhow::Result<bool> {
+    ) -> anyhow::Result<()> {
         let config_path = self.build_instance_locations_config_path(app_name, instance_id);
         if matches!(config_path.try_exists(), Ok(false)) {
-            return Ok(false);
+            return Ok(());
         }
         match std::fs::remove_file(&config_path) {
             Ok(()) => {
                 debug!(
                     "Removed additional locations reverse proxy config for instance {instance_id} at {config_path:?}."
                 );
-                Ok(true)
+                Ok(())
             }
             Err(e) => Err(anyhow::anyhow!("Error deleting {config_path:?}: {e}")),
         }
@@ -88,17 +70,17 @@ impl Floxy for FloxyImpl {
         &self,
         app_name: &str,
         instance_id: InstanceId,
-    ) -> crate::Result<bool> {
+    ) -> crate::Result<()> {
         let config_path = self.build_instance_config_path(app_name, instance_id);
         if matches!(config_path.try_exists(), Ok(false)) {
-            return Ok(false);
+            return Ok(());
         }
         match std::fs::remove_file(&config_path) {
             Ok(()) => {
                 debug!(
                     "Removed reverse proxy config for instance {instance_id} at {config_path:?}."
                 );
-                Ok(true)
+                Ok(())
             }
             Err(e) => Err(anyhow::anyhow!("Error deleting {config_path:?}: {e}")),
         }
@@ -109,17 +91,17 @@ impl Floxy for FloxyImpl {
         app_name: &str,
         instance_id: InstanceId,
         host_port: u16,
-    ) -> anyhow::Result<bool> {
+    ) -> anyhow::Result<()> {
         let config_path = self.build_server_config_path(app_name, instance_id, host_port);
         if matches!(config_path.try_exists(), Ok(false)) {
-            return Ok(false);
+            return Ok(());
         }
         match std::fs::remove_file(&config_path) {
             Ok(()) => {
                 debug!(
                     "Removed server config for instance {instance_id} and port {host_port} at {config_path:?}."
                 );
-                Ok(true)
+                Ok(())
             }
             Err(e) => Err(anyhow::anyhow!("Error deleting {config_path:?}: {e}")),
         }
@@ -130,26 +112,19 @@ impl Floxy for FloxyImpl {
         app_name: &str,
         instance_id: InstanceId,
         host_ports: &[u16],
-    ) -> Result<bool, (bool, Error)> {
+    ) -> crate::Result<()> {
         let mut delete_failures = Vec::new();
-        let mut reload = false;
         for host_port in host_ports {
-            match self.delete_server_config(app_name, instance_id, *host_port) {
-                Err(e) => {
-                    delete_failures.push(e.to_string());
-                }
-                Ok(delete_success) => reload |= delete_success,
+            if let Err(e) = self.delete_server_config(app_name, instance_id, *host_port) {
+                delete_failures.push(e.to_string());
             }
         }
         if delete_failures.is_empty() {
-            Ok(reload)
+            Ok(())
         } else {
-            Err((
-                reload,
-                anyhow::anyhow!(
-                    "Could not delete all server proxy configs: [{}], {self}",
-                    delete_failures.join(",")
-                ),
+            Err(anyhow::anyhow!(
+                "Could not delete all server proxy configs: [{}], {self}",
+                delete_failures.join(",")
             ))
         }
     }
@@ -162,11 +137,10 @@ impl Floxy for FloxyImpl {
         instance_id: InstanceId,
         instance_ip: IpAddr,
         dest_port: u16,
-    ) -> crate::Result<(bool, u16)> {
+    ) -> crate::Result<u16> {
         let free_port = get_random_free_port()?;
-        let config_changed =
-            self.add_instance_redirect(app_name, instance_id, instance_ip, free_port, dest_port)?;
-        Ok((config_changed, free_port))
+        self.add_instance_redirect(app_name, instance_id, instance_ip, free_port, dest_port)?;
+        Ok(free_port)
     }
 
     fn add_instance_redirect(
@@ -176,19 +150,13 @@ impl Floxy for FloxyImpl {
         instance_ip: IpAddr,
         src_port: u16,
         dest_port: u16,
-    ) -> anyhow::Result<bool> {
+    ) -> anyhow::Result<()> {
         let config_content = Self::create_server_config(instance_ip, src_port, dest_port);
         let config_path = self.build_server_config_path(app_name, instance_id, src_port);
-        let config_changed = self.add_reverse_proxy_config(&config_content, &config_path)?;
+        self.add_reverse_proxy_config(&config_content, &config_path)?;
         debug!(
             "Added redirect for instance {instance_id} at {config_path:?}: host:{src_port} -> {instance_ip}:{dest_port}"
         );
-        Ok(config_changed)
-    }
-
-    fn reload_config(&self) -> anyhow::Result<()> {
-        self.nginx.reload_config()?;
-        info!("Nginx config reload triggered {self}");
         Ok(())
     }
 
@@ -207,9 +175,8 @@ impl Display for FloxyImpl {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "(Floxy: (base_path = {}, nginx = {})",
-            (*self.lore).as_ref().base_path.to_string_lossy(),
-            self.nginx
+            "(Floxy: (base_path = {}))",
+            (*self.lore).as_ref().base_path.to_string_lossy()
         )
     }
 }
@@ -219,11 +186,8 @@ impl FloxyImpl {
         self.lore.as_ref().as_ref()
     }
 
-    pub fn from_config(lore: FloxyLoreRef) -> crate::Result<Self> {
-        Ok(Self {
-            nginx: Nginx::from_config(lore.as_ref().as_ref().config_path.clone())?,
-            lore,
-        })
+    pub fn new(lore: FloxyLoreRef) -> Self {
+        Self { lore }
     }
 
     fn create_instance_reverse_proxy_config<'a, I: Iterator<Item = &'a u16>>(
@@ -420,111 +384,20 @@ server {{
 mod tests {
     use super::*;
     use crate::lore;
-    use crate::relic::nginx::tests::NGINX_CONFIG_EXAMPLE;
-    use crate::relic::process::tests::sleepy_child;
     use crate::relic::var::test::MockVarReader;
-    use crate::tests::prepare_test_path;
-    use ntest::timeout;
     use std::fs;
     use std::net::Ipv4Addr;
-    use std::os::unix::process::ExitStatusExt;
-    use std::process::ExitStatus;
     use testdir::testdir;
 
     #[test]
     fn display_test() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let path = lore.floxy.base_path.clone();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         assert_eq!(
             floxy.to_string(),
-            format!(
-                "(Floxy: (base_path = {}, nginx = (pid /var/run/nginx.pid, config Default))",
-                path.display()
-            )
+            format!("(Floxy: (base_path = {}))", path.display())
         );
-    }
-
-    #[test]
-    #[timeout(10000)]
-    fn reload_ok() {
-        let mut child = sleepy_child();
-        let lore = Arc::new(lore::test_lore(
-            prepare_test_path(module_path!(), "reload_ok"),
-            &MockVarReader::new(),
-        ));
-        std::fs::create_dir_all(lore.floxy.config_path.parent().unwrap()).unwrap();
-        std::fs::create_dir_all(&lore.floxy.base_path).unwrap();
-        let test_pid_path = lore.floxy.base_path.join("sleepy.pid");
-        std::fs::write(&test_pid_path, format!("{}\n", child.id())).unwrap();
-        std::fs::write(
-            &lore.floxy.config_path,
-            format!("pid {};", test_pid_path.to_string_lossy()),
-        )
-        .unwrap();
-        let floxy = FloxyImpl::from_config(lore).unwrap();
-        match floxy.reload_config() {
-            Ok(_) => {
-                let output = child.wait_with_output().unwrap();
-                assert_eq!(output.status, ExitStatus::from_raw(1))
-            }
-            Err(e) => {
-                child.kill().unwrap();
-                child.wait().unwrap();
-                panic!("reload_config failed: {e}")
-            }
-        }
-    }
-
-    #[test]
-    #[timeout(10000)]
-    fn stop_ok() {
-        let mut child = sleepy_child();
-        let lore = Arc::new(lore::test_lore(
-            prepare_test_path(module_path!(), "stop_ok"),
-            &MockVarReader::new(),
-        ));
-        std::fs::create_dir_all(&lore.floxy.base_path).unwrap();
-        std::fs::create_dir_all(lore.floxy.config_path.parent().unwrap()).unwrap();
-        let test_pid_path = lore.floxy.base_path.join("sleepy.pid");
-        std::fs::write(&test_pid_path, format!("{}\n", child.id())).unwrap();
-        std::fs::write(
-            &lore.floxy.config_path,
-            format!("pid {};", test_pid_path.to_string_lossy()),
-        )
-        .unwrap();
-        let floxy = FloxyImpl::from_config(lore).unwrap();
-        match floxy.stop() {
-            Ok(_) => {
-                let output = child.wait_with_output().unwrap();
-                assert_eq!(output.status, ExitStatus::from_raw(131))
-            }
-            Err(e) => {
-                child.kill().unwrap();
-                child.wait().unwrap();
-                panic!("graceful_shutdown failed: {e}")
-            }
-        }
-    }
-
-    #[test]
-    fn from_config_ok() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
-        std::fs::create_dir_all(lore.floxy.config_path.parent().unwrap()).unwrap();
-        let test_config_path = lore.floxy.config_path.clone();
-        std::fs::write(&test_config_path, NGINX_CONFIG_EXAMPLE).unwrap();
-        let floxy = FloxyImpl::from_config(lore).unwrap();
-        assert_eq!(floxy.nginx.config_path(), Some(test_config_path.as_path()));
-        assert_eq!(floxy.nginx.pid_path(), Path::new("/abc/def/nginx.pid"));
-    }
-
-    #[test]
-    fn from_config_err() {
-        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
-        assert!(FloxyImpl::from_config(lore).is_err());
     }
 
     const EXPECTED_TRIPLE_CONFIG: &str = "
@@ -617,10 +490,7 @@ location /v2/instances/1234abcd/editor/7000 {
             .floxy
             .instance_config_path()
             .join("test_app-1234abcd.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         assert!(matches!(
             floxy.add_instance_reverse_proxy_config(
                 "test_app",
@@ -628,7 +498,7 @@ location /v2/instances/1234abcd/editor/7000 {
                 IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
                 &TRIPLE_DEST_PORTS,
             ),
-            Ok(true)
+            Ok(())
         ));
         assert_eq!(
             std::fs::read_to_string(config_path).unwrap(),
@@ -645,10 +515,7 @@ location /v2/instances/1234abcd/editor/7000 {
             .join("test_app-1234abcd.conf");
         std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
         std::fs::write(&config_path, EXPECTED_TRIPLE_CONFIG).unwrap();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         assert!(matches!(
             floxy.add_instance_reverse_proxy_config(
                 "test_app",
@@ -656,7 +523,7 @@ location /v2/instances/1234abcd/editor/7000 {
                 IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
                 &TRIPLE_DEST_PORTS,
             ),
-            Ok(false)
+            Ok(())
         ));
         assert_eq!(
             std::fs::read_to_string(config_path).unwrap(),
@@ -673,10 +540,7 @@ location /v2/instances/1234abcd/editor/7000 {
             .join("test_app-1234abcd.conf");
         std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
         std::fs::write(&config_path, "test config").unwrap();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         assert!(matches!(
             floxy.add_instance_reverse_proxy_config(
                 "test_app",
@@ -684,7 +548,7 @@ location /v2/instances/1234abcd/editor/7000 {
                 IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
                 &TRIPLE_DEST_PORTS,
             ),
-            Ok(true)
+            Ok(())
         ));
         assert_eq!(
             std::fs::read_to_string(config_path).unwrap(),
@@ -769,10 +633,7 @@ location TEST_LOCATION {
             .floxy
             .instance_config_path()
             .join("test_app-abcd1234.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
         std::fs::write(&config_path, "test config").unwrap();
         floxy
@@ -784,10 +645,7 @@ location TEST_LOCATION {
     #[test]
     fn delete_reverse_proxy_config_not_existing() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         floxy
             .delete_reverse_proxy_config("test_app", InstanceId::new(0xabcd1234))
             .unwrap();
@@ -800,10 +658,7 @@ location TEST_LOCATION {
             .floxy
             .instance_config_path()
             .join("test_app-abcd1234.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         std::fs::create_dir_all(config_path).unwrap();
         assert!(
             floxy
@@ -819,10 +674,7 @@ location TEST_LOCATION {
             .floxy
             .server_config_path()
             .join("test_app-abcd1234_1234.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
         std::fs::write(&config_path, "test config").unwrap();
         floxy
@@ -838,10 +690,7 @@ location TEST_LOCATION {
             .floxy
             .server_config_path()
             .join("test_app-abcd1234_1234.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         std::fs::create_dir_all(config_path).unwrap();
         assert!(
             floxy
@@ -857,10 +706,7 @@ location TEST_LOCATION {
             .floxy
             .server_config_path()
             .join("test_app-ab12cd34_1234.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         assert_eq!(
             floxy.build_server_config_path("test_app", InstanceId::new(0xab12cd34), 1234),
             config_path
@@ -874,10 +720,7 @@ location TEST_LOCATION {
             .floxy
             .instance_config_path()
             .join("test_app-ab12cd34.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         assert_eq!(
             floxy.build_instance_config_path("test_app", InstanceId::new(0xab12cd34)),
             config_path
@@ -891,10 +734,7 @@ location TEST_LOCATION {
         let config_test_dir = lore.base_path.clone();
         std::fs::create_dir_all(&config_test_dir).unwrap();
         std::fs::write(config_path, "test config").unwrap();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         let entry = std::fs::read_dir(config_test_dir)
             .unwrap()
             .next()
@@ -909,10 +749,7 @@ location TEST_LOCATION {
         let config_path = lore.floxy.base_path.join("test.conf");
         let config_test_dir = lore.floxy.base_path.clone();
         std::fs::create_dir_all(&config_path).unwrap();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         let entry = std::fs::read_dir(config_test_dir)
             .unwrap()
             .next()
@@ -929,10 +766,7 @@ location TEST_LOCATION {
         let config_test_dir = lore.floxy.base_path.clone();
         std::fs::create_dir_all(&config_test_dir).unwrap();
         std::fs::write(&config_path, "test config").unwrap();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         let entry = std::fs::read_dir(config_test_dir)
             .unwrap()
             .next()
@@ -949,10 +783,7 @@ location TEST_LOCATION {
         let config_test_dir = lore.floxy.base_path.clone();
         std::fs::create_dir_all(&config_test_dir).unwrap();
         std::fs::write(&config_path, "test config").unwrap();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         let entry = std::fs::read_dir(config_test_dir)
             .unwrap()
             .next()
@@ -972,10 +803,7 @@ location TEST_LOCATION {
         }
         std::fs::write(server_dir.join("test.file"), "test file").unwrap();
         std::fs::create_dir_all(server_dir.join("test.dir")).unwrap();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         floxy.clear_server_configs().unwrap();
         for i in 0..10 {
             assert!(matches!(
@@ -1006,10 +834,7 @@ location TEST_LOCATION {
         )
         .unwrap();
         std::fs::write(server_dir.join("test_app-cdab3412_910.conf"), "test config").unwrap();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         let ports = [1234, 5678, 910];
         floxy
             .delete_server_proxy_configs("test_app", InstanceId::new(0xcdab3412), &ports)
@@ -1040,10 +865,7 @@ location TEST_LOCATION {
         .unwrap();
         std::fs::create_dir_all(server_dir.join("test_app-cdab3412_5678.conf")).unwrap();
         std::fs::write(server_dir.join("test_app-cdab3412_910.conf"), "test config").unwrap();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         let ports = [1234, 5678, 910];
         assert!(
             floxy
@@ -1069,10 +891,7 @@ location TEST_LOCATION {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         fs::create_dir_all(&lore.floxy.base_path).unwrap();
         let config_path = lore.floxy.base_path.join("test.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         std::fs::write(&config_path, "test content").unwrap();
         assert!(matches!(
             floxy.add_reverse_proxy_config("test content", &config_path),
@@ -1089,10 +908,7 @@ location TEST_LOCATION {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         fs::create_dir_all(&lore.floxy.base_path).unwrap();
         let config_path = lore.floxy.base_path.join("test.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         std::fs::write(&config_path, "old test content").unwrap();
         assert!(matches!(
             floxy.add_reverse_proxy_config("test content", &config_path),
@@ -1108,10 +924,7 @@ location TEST_LOCATION {
     fn create_reverse_proxy_config_new_config() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let config_path = lore.floxy.base_path.join("test.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         assert!(matches!(
             floxy.add_reverse_proxy_config("test content", &config_path),
             Ok(true)
@@ -1127,10 +940,7 @@ location TEST_LOCATION {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let config_dir = lore.base_path.join("config");
         let config_path = config_dir.join("test.conf");
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
+        let floxy = FloxyImpl { lore };
         assert!(
             floxy
                 .add_reverse_proxy_config("test content", &config_path)
@@ -1143,11 +953,8 @@ location TEST_LOCATION {
     fn create_instance_editor_redirect_to_free_port_ok() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let server_config_path = lore.floxy.server_config_path();
-        let floxy = FloxyImpl {
-            nginx: Nginx::default(),
-            lore,
-        };
-        let (reload_necessary, port) = floxy
+        let floxy = FloxyImpl { lore };
+        let port = floxy
             .add_instance_editor_redirect_to_free_port(
                 "test app",
                 InstanceId::new(0x12345678),
@@ -1156,7 +963,6 @@ location TEST_LOCATION {
             )
             .unwrap();
         let config_path = server_config_path.join(format!("test app-12345678_{port}.conf"));
-        assert!(reload_necessary);
         let expected_config_content = format!(
             "
 server {{

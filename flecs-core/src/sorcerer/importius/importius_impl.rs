@@ -1,4 +1,4 @@
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::forge::time::SystemTimeExt;
 use crate::lore::Lore;
 use crate::quest::SyncQuest;
@@ -22,11 +22,11 @@ impl Sorcerer for ImportiusImpl {}
 
 #[async_trait]
 impl Importius for ImportiusImpl {
-    async fn import_archive<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
+    async fn import_archive<U: UsbDeviceReader + 'static>(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         lore: Arc<Lore>,
         usb_device_reader: Arc<U>,
         mut path_info: ImportPathInfo,
@@ -43,10 +43,10 @@ impl Importius for ImportiusImpl {
     }
 }
 
-async fn import_archive<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
+async fn import_archive<U: UsbDeviceReader + 'static>(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     lore: Arc<Lore>,
     usb_device_reader: Arc<U>,
     path_info: ImportPathInfo,
@@ -104,10 +104,10 @@ async fn extract_quest(
         .2
 }
 
-async fn import<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
+async fn import<U: UsbDeviceReader + 'static>(
     quest: SyncQuest,
     vault: Arc<Vault>,
-    floxy: Arc<FloxyOperation<F>>,
+    floxy: Arc<dyn Floxy>,
     usb_device_reader: Arc<U>,
     lore: Arc<Lore>,
     import_path: PathBuf,

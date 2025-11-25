@@ -1,6 +1,6 @@
 mod importius_impl;
 
-use crate::enchantment::floxy::{Floxy, FloxyOperation};
+use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::instance::CreateInstanceError;
 use crate::jeweler::gem::instance::docker::TransferIpError;
 use crate::lore::Lore;
@@ -123,11 +123,11 @@ pub struct ImportPathInfo {
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait Importius: Sorcerer + 'static {
-    async fn import_archive<F: Floxy + 'static, U: UsbDeviceReader + 'static>(
+    async fn import_archive<U: UsbDeviceReader + 'static>(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        floxy: Arc<FloxyOperation<F>>,
+        floxy: Arc<dyn Floxy>,
         lore: Arc<Lore>,
         usb_device_reader: Arc<U>,
         path_info: ImportPathInfo,
