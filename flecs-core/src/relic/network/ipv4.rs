@@ -124,7 +124,7 @@ impl Ipv4Network {
 
     pub fn try_new(address: Ipv4Addr, size: u8) -> crate::Result<Self> {
         anyhow::ensure!(size <= 32, "Network size has to be 32 or less, not {size}");
-        let mask = Ipv4Addr::from(0xffffffff >> size);
+        let mask = Ipv4Addr::from(0xffffffff_u32.checked_shr(size as u32).unwrap_or_default());
         anyhow::ensure!(
             (address & mask) == Ipv4Addr::UNSPECIFIED,
             "Address part of network {address}/{size} is not 0"
@@ -677,6 +677,7 @@ mod tests {
     #[test_case("100.0.0.0", 8, "255.0.0.0")]
     #[test_case("200.200.80.0", 20, "255.255.240.0")]
     #[test_case("127.0.0.0", 10, "255.192.0.0")]
+    #[test_case("10.2.0.2", 32, "255.255.255.255")]
     fn ipv4_from_address_and_subnet_mask(ip: &str, prefix_len: u8, subnet_mask: &str) {
         let address = Ipv4Addr::from_str(ip).unwrap();
         let expected = Ipv4Network::try_new(address, prefix_len).unwrap();
