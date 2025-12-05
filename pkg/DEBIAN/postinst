@@ -6,7 +6,6 @@ case $1 in
   abort-upgrade)
     ;;
   configure|abort-remove)
-    flecsd.sh migrate || exit 1
     systemctl preset flecs
     systemctl is-enabled flecs >/dev/null && systemctl start flecs
     ;;

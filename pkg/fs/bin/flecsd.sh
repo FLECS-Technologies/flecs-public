@@ -28,7 +28,6 @@ print_usage() {
   echo "      pull      Pull FLECS Core Docker image"
   echo "      create    Create FLECS Core Docker container"
   echo "      remove    Delete FLECS Core Docker container"
-  echo "      migrate   Migrate local userdata into FLECS Core Docker container"
   echo "      stop      Cleanly shutdown FLECS Core Docker container"
   echo "      kill      Kill FLECS Core Docker container"
   echo
@@ -77,29 +76,15 @@ create_network() {
 }
 
 create_container() {
-  if [ "${1}" = "--migrate" ]; then
-    # Migrate from native to containerized installation; skip if flecsd volume already contains userdata
-    ENTRYPOINT="--entrypoint bash"
-    COMMAND=("-c" "[ -d /var/lib/flecs ] && exit 0; cp -prTv /host/var/lib/flecs/ /var/lib/flecs/")
-    NETWORK="--network none"
-    VOLUME="--volume /var/lib/flecs:/host/var/lib/flecs"
-    shift
-  else
-    ENTRYPOINT=""
-    COMMAND=()
-    NETWORK="--network host"
-    VOLUME="--volume /run/docker.sock:/run/docker.sock"
-  fi
+  NETWORK="--network host"
+  VOLUME="--volume /run/docker.sock:/run/docker.sock"
   docker create \
     --rm \
     --name ${CONTAINER} \
     ${NETWORK} \
-    ${ENTRYPOINT} \
     ${VOLUME} \
     --volume flecsd:/var/lib/flecs \
-    ${DOCKER_IMAGE}:${DOCKER_TAG} \
-    "${COMMAND[@]}" \
-    $*
+    ${DOCKER_IMAGE}:${DOCKER_TAG}
 }
 
 remove_container() {
@@ -123,21 +108,11 @@ case ${1} in
     ;;
   create)
     create_network
-    create_container ${GATEWAY}
+    create_container
     exit $?
     ;;
   remove)
     remove_container
-    exit $?
-    ;;
-  migrate)
-    if [ ! -d "/var/lib/flecs" ]; then
-      # No local userdata present, nothing to migrate
-      exit 0
-    fi
-    remove_container
-    create_container --migrate || exit 1
-    docker start -a ${CONTAINER}
     exit $?
     ;;
   stop)
