@@ -32,6 +32,15 @@ function(stage_docker_fs)
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
+    install(
+        FILES ${CMAKE_SOURCE_DIR}/docker/fs/entrypoint.sh
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+        PERMISSIONS GROUP_READ GROUP_EXECUTE
+        PERMISSIONS WORLD_READ WORLD_EXECUTE
+        COMPONENT docker
+        EXCLUDE_FROM_ALL
+    )
     install(FILES ${CMAKE_SOURCE_DIR}/pkg/fs/etc/nginx/floxy.conf
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/etc/nginx
         COMPONENT docker

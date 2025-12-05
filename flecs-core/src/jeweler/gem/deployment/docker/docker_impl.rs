@@ -8,7 +8,8 @@ use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::single::{AppManifestSingle, ConfigFile};
 use crate::jeweler::network::{
-    CreateNetworkError, NetworkConfig, NetworkDeployment, NetworkId, NetworkKind,
+    CreateNetworkError, InspectNetworkError, NetworkConfig, NetworkDeployment, NetworkId,
+    NetworkKind,
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
 use crate::lore::{ExportLoreRef, ImportLoreRef, InstanceLoreRef, NetworkLoreRef};
@@ -24,9 +25,7 @@ use bollard::models::{
     ContainerInspectResponse, ContainerState, EndpointIpamConfig, EndpointSettings, HostConfig,
     Ipam, IpamConfig, Mount, MountPointTypeEnum, MountTypeEnum, Network,
 };
-use bollard::network::{
-    ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions, ListNetworksOptions,
-};
+use bollard::network::{ConnectNetworkOptions, CreateNetworkOptions, DisconnectNetworkOptions};
 use bollard::volume::CreateVolumeOptions;
 use bollard::{API_DEFAULT_VERSION, Docker};
 use futures_util::future::{BoxFuture, join_all};
@@ -855,37 +854,16 @@ impl DockerDeploymentImpl {
 
     pub async fn default_network_with_client(
         docker_client: Arc<Docker>,
-        network_adapter_reader: &dyn NetworkAdapterReader,
         lore: NetworkLoreRef,
-    ) -> anyhow::Result<Network, CreateNetworkError> {
+    ) -> anyhow::Result<Network, InspectNetworkError> {
         let default_network_name = lore.as_ref().as_ref().default_network_name.as_str();
-        let network = relic::docker::network::list(
-            docker_client.clone(),
-            Some(ListNetworksOptions {
-                filters: HashMap::from([("name", vec![default_network_name])]),
-            }),
-        )
-        .await?
-        .into_iter()
-        .find(|network| network.name.as_deref() == Some(default_network_name));
-        if let Some(network) = network {
-            return Ok(network);
-        };
-        Self::create_default_network_with_client(docker_client, lore, network_adapter_reader).await
-    }
-
-    pub async fn create_default_network_with_client(
-        docker_client: Arc<Docker>,
-        lore: NetworkLoreRef,
-        network_adapter_reader: &dyn NetworkAdapterReader,
-    ) -> anyhow::Result<Network, CreateNetworkError> {
-        Self::create_network_with_client(
-            docker_client,
-            Quest::new_synced("Create default network".to_string()),
-            lore.as_ref().as_ref().default_network_config(),
-            network_adapter_reader,
-        )
-        .await
+        relic::docker::network::inspect::<String>(docker_client.clone(), default_network_name, None)
+            .await?
+            .into_iter()
+            .find(|network| network.name.as_deref() == Some(default_network_name))
+            .ok_or_else(|| {
+                InspectNetworkError::NetworkDoesNotExist(default_network_name.to_string())
+            })
     }
 
     pub async fn inspect_volume_with_client(
@@ -898,16 +876,6 @@ impl DockerDeploymentImpl {
 
 #[async_trait]
 impl DockerDeployment for DockerDeploymentImpl {
-    async fn create_default_network(
-        &self,
-        lore: NetworkLoreRef,
-    ) -> crate::Result<jeweler::network::Network, CreateNetworkError> {
-        self.create_network(
-            Quest::new_synced("Create default network".to_string()),
-            lore.as_ref().as_ref().default_network_config(),
-        )
-        .await
-    }
     async fn app_info(
         &self,
         _quest: SyncQuest,
@@ -1372,10 +1340,9 @@ impl NetworkDeployment for DockerDeploymentImpl {
     async fn default_network(
         &self,
         lore: NetworkLoreRef,
-    ) -> Result<jeweler::network::Network, CreateNetworkError> {
+    ) -> Result<jeweler::network::Network, InspectNetworkError> {
         let docker_client = self.client()?;
-        Self::default_network_with_client(docker_client, self.network_adapter_reader.as_ref(), lore)
-            .await
+        Self::default_network_with_client(docker_client, lore).await
     }
 
     async fn delete_network(&self, id: NetworkId) -> anyhow::Result<()> {

@@ -1,10 +1,9 @@
 mod docker_impl;
-use crate::jeweler;
 use crate::jeweler::deployment::CommonDeployment;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{InstanceId, Logs};
 use crate::jeweler::gem::manifest::single::{AppManifestSingle, ConfigFile};
-use crate::jeweler::network::{CreateNetworkError, NetworkId};
+use crate::jeweler::network::NetworkId;
 use crate::lore::{InstanceLoreRef, NetworkLoreRef};
 use crate::quest::SyncQuest;
 use async_trait::async_trait;
@@ -18,11 +17,6 @@ use std::sync::Arc;
 pub type AppInfo = bollard::models::ImageInspect;
 #[async_trait]
 pub trait DockerDeployment: CommonDeployment {
-    async fn create_default_network(
-        &self,
-        lore: NetworkLoreRef,
-    ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
-
     async fn app_info(
         &self,
         _quest: SyncQuest,
@@ -121,7 +115,8 @@ pub mod tests {
     use crate::jeweler::gem::manifest::AppManifest;
     use crate::jeweler::gem::manifest::single::ConfigFile;
     use crate::jeweler::network::{
-        CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
+        CreateNetworkError, InspectNetworkError, Network, NetworkConfig, NetworkDeployment,
+        NetworkId,
     };
     use crate::jeweler::volume::Volume;
     use crate::jeweler::volume::VolumeDeployment;
@@ -179,7 +174,7 @@ pub mod tests {
         #[async_trait]
         impl NetworkDeployment for edDockerDeployment {
             async fn create_network(&self, quest: SyncQuest, config: NetworkConfig) -> Result<Network, CreateNetworkError>;
-            async fn default_network(&self, lore: NetworkLoreRef) -> Result<Network, CreateNetworkError>;
+            async fn default_network(&self, lore: NetworkLoreRef) -> Result<Network, InspectNetworkError>;
             async fn delete_network(&self, id: NetworkId) -> Result<()>;
             async fn network(&self, id: NetworkId) -> Result<Option<Network>>;
             async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;
@@ -217,10 +212,6 @@ pub mod tests {
         }
         #[async_trait]
         impl DockerDeployment for edDockerDeployment {
-            async fn create_default_network(
-                &self,
-                lore: NetworkLoreRef,
-            ) -> crate::Result<jeweler::network::Network, CreateNetworkError>;
             async fn app_info(
                 &self,
                 _quest: SyncQuest,
