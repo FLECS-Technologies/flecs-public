@@ -3,12 +3,12 @@ pub mod docker;
 mod id;
 pub mod status;
 
-use crate::enchantment::floxy::Floxy;
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::{AppManifest, DependencyKey, FeatureKey};
 use crate::lore::Lore;
 use crate::quest::SyncQuest;
+use crate::relic::floxy::Floxy;
 use crate::vault::pouch;
 use crate::vault::pouch::AppKey;
 use crate::vault::pouch::provider::ProviderId;

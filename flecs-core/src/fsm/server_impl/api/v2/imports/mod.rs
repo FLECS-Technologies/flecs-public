@@ -1,8 +1,8 @@
-use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::forge::axum::{MultipartExt, WriteMultipartError};
 use crate::lore::Lore;
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::importius::{ImportPathInfo, Importius};
 use crate::vault::Vault;
 use axum_extra::extract::Multipart;

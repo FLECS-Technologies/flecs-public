@@ -1,9 +1,9 @@
-use crate::enchantment::floxy::Floxy;
 use crate::forge::time::SystemTimeExt;
 use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::relic::async_flecstract::{decompress_from_file, extract_from_file};
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::exportius::manifest::Manifest;
 use crate::sorcerer::importius::{ImportError, ImportPathInfo, Importius};
 use crate::sorcerer::spell::instance::start_all_instances_as_desired;

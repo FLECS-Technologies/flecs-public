@@ -2,11 +2,8 @@ pub mod console_client;
 mod server_impl;
 pub mod world;
 use crate::enchantment::Enchantments;
-use crate::fsm::server_impl::DeviceReaders;
 use crate::lore::{Listener, Lore};
-use crate::relic::device::net::NetDeviceReaderImpl;
-use crate::relic::device::usb::UsbDeviceReaderImpl;
-use crate::relic::network::NetworkAdapterReaderImpl;
+use crate::relic::FlecsRelics;
 use crate::sorcerer::Sorcerers;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
@@ -173,19 +170,6 @@ async fn roles_middleware(
     }
 }
 
-pub type DefaultDeviceReaders =
-    DeviceReaders<UsbDeviceReaderImpl, NetworkAdapterReaderImpl, NetDeviceReaderImpl>;
-
-impl Default for DefaultDeviceReaders {
-    fn default() -> Self {
-        Self {
-            usb_reader: Default::default(),
-            network_adapter_reader: Default::default(),
-            net_device_reader: Default::default(),
-        }
-    }
-}
-
 async fn create_service<
     APP: AppRaiser + 'static,
     AUTH: Authmancer + 'static,
@@ -210,7 +194,7 @@ async fn create_service<
         lore.clone(),
         sorcerers,
         enchantments,
-        DefaultDeviceReaders::default(),
+        FlecsRelics::default(),
         #[cfg(feature = "auth")]
         wall.clone(),
     )

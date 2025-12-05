@@ -181,7 +181,7 @@ impl<
             super::api::v2::instances::instance_id::config::devices::usb::get(
                 self.vault.clone(),
                 self.sorcerers.instancius.clone(),
-                self.device_readers.usb_reader.clone(),
+                self.relics.usb_device_reader.clone(),
                 path_params,
             )
             .await,
@@ -216,7 +216,7 @@ impl<
             super::api::v2::instances::instance_id::config::devices::usb::port::get(
                 self.vault.clone(),
                 self.sorcerers.instancius.clone(),
-                self.device_readers.usb_reader.clone(),
+                self.relics.usb_device_reader.clone(),
                 path_params,
             )
             .await,
@@ -234,7 +234,7 @@ impl<
             super::api::v2::instances::instance_id::config::devices::usb::port::put(
                 self.vault.clone(),
                 self.sorcerers.instancius.clone(),
-                self.device_readers.usb_reader.clone(),
+                self.relics.usb_device_reader.clone(),
                 path_params,
             )
             .await,
@@ -286,7 +286,7 @@ impl<
             super::api::v2::instances::instance_id::config::editors::port::path_prefix::delete(
                 self.vault.clone(),
                 self.sorcerers.instancius.clone(),
-                self.enchantments.floxy.clone(),
+                self.relics.floxy.clone(),
                 path_params,
             )
             .await,
@@ -305,7 +305,7 @@ impl<
             super::api::v2::instances::instance_id::config::editors::port::path_prefix::put(
                 self.vault.clone(),
                 self.sorcerers.instancius.clone(),
-                self.enchantments.floxy.clone(),
+                self.relics.floxy.clone(),
                 path_params,
                 body,
             )
@@ -751,7 +751,7 @@ impl<
         Ok(super::api::v2::instances::instance_id::delete(
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
-            self.enchantments.floxy.clone(),
+            self.relics.floxy.clone(),
             self.enchantments.quest_master.clone(),
             path_params,
         )
@@ -769,7 +769,8 @@ impl<
         let port = NonZeroU16::new(path_params.port as u16).unwrap();
         super::api::v2::instances::instance_id::editor::port::get(
             self.vault.clone(),
-            self.enchantments.floxy.clone(),
+            self.relics.floxy.clone(),
+            self.lore.clone(),
             self.sorcerers.instancius.clone(),
             host,
             instance_id,
@@ -819,7 +820,7 @@ impl<
         Ok(super::api::v2::instances::instance_id::patch(
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
-            self.enchantments.floxy.clone(),
+            self.relics.floxy.clone(),
             self.enchantments.quest_master.clone(),
             self.lore.clone(),
             path_params,
@@ -838,7 +839,7 @@ impl<
         super::api::v2::instances::instance_id::start::post(
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
-            self.enchantments.floxy.clone(),
+            self.relics.floxy.clone(),
             self.enchantments.quest_master.clone(),
             path_params,
         )
@@ -855,7 +856,7 @@ impl<
         super::api::v2::instances::instance_id::stop::post(
             self.vault.clone(),
             self.sorcerers.instancius.clone(),
-            self.enchantments.floxy.clone(),
+            self.relics.floxy.clone(),
             self.enchantments.quest_master.clone(),
             path_params,
         )

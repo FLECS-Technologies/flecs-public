@@ -1,7 +1,7 @@
-use crate::enchantment::floxy::Floxy;
 use crate::fsm::server_impl::ServerImpl;
 use crate::relic::device::net::NetDeviceReaderImpl;
 use crate::relic::device::usb::UsbDeviceReaderImpl;
+use crate::relic::floxy::Floxy;
 use crate::relic::network::NetworkAdapterReaderImpl;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
@@ -305,7 +305,7 @@ impl<
             >,
         >,
     ) -> Self {
-        Self(input.enchantments.floxy.clone())
+        Self(input.relics.floxy.clone())
     }
 }
 
@@ -364,7 +364,7 @@ impl<
             >,
         >,
     ) -> Self {
-        Self(input.device_readers.usb_reader.clone())
+        Self(input.relics.usb_device_reader.clone())
     }
 }
 

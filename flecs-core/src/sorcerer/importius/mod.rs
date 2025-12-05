@@ -1,11 +1,11 @@
 mod importius_impl;
 
-use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::instance::CreateInstanceError;
 use crate::jeweler::gem::instance::docker::TransferIpError;
 use crate::lore::Lore;
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::UsbDeviceReader;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
 use crate::vault::pouch::AppKey;

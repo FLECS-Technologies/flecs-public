@@ -1,6 +1,6 @@
-use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::instancius::Instancius;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::InstancesInstanceIdStopPostResponse as PostResponse;
@@ -47,7 +47,7 @@ pub async fn post<I: Instancius + 'static>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::enchantment::floxy::MockFloxy;
+    use crate::relic::floxy::MockFloxy;
     use crate::sorcerer::instancius::MockInstancius;
 
     #[tokio::test]

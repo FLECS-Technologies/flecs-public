@@ -1,10 +1,10 @@
 mod exportius_impl;
-use crate::enchantment::floxy::Floxy;
 use crate::forge::time::SystemTimeExt;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::ExportLoreRef;
 use crate::quest::SyncQuest;
 use crate::relic::async_flecstract::archive_to_file;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::Sorcerer;
 use crate::sorcerer::spell::flecsport::{
     ExportAppError, ExportDeploymentError, ExportInstanceError,

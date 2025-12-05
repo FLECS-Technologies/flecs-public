@@ -52,7 +52,7 @@ impl<
     ) -> Result<AppsAppDeleteResponse, ()> {
         super::api::v2::apps::app::delete(
             self.vault.clone(),
-            self.enchantments.floxy.clone(),
+            self.relics.floxy.clone(),
             self.sorcerers.app_raiser.clone(),
             self.enchantments.quest_master.clone(),
             path_params,

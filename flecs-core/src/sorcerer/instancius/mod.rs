@@ -1,6 +1,5 @@
 mod instancius_impl;
 pub use super::Result;
-use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem;
 use crate::jeweler::gem::instance::docker::config::{
     InstancePortMapping, TransportProtocol, UsbPathConfig,
@@ -11,9 +10,10 @@ use crate::jeweler::gem::manifest::single::{
 };
 use crate::jeweler::network::NetworkId;
 use crate::jeweler::volume::VolumeId;
-use crate::lore::Lore;
+use crate::lore::{FloxyLoreRef, Lore};
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::Sorcerer;
 pub use crate::sorcerer::spell::instance::DisconnectInstanceError;
 pub use crate::sorcerer::spell::instance::QueryInstanceConfigError;
@@ -481,6 +481,7 @@ pub trait Instancius: Sorcerer {
     async fn redirect_editor_request(
         &self,
         vault: Arc<Vault>,
+        lore: FloxyLoreRef,
         floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
         port: NonZeroU16,

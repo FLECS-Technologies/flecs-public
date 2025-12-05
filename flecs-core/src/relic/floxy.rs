@@ -1,6 +1,7 @@
 mod floxy_impl;
 
 use crate::jeweler::gem::instance::InstanceId;
+use crate::lore::FloxyLoreRef;
 pub use floxy_impl::FloxyImpl;
 #[cfg(test)]
 use mockall::{automock, predicate::*};
@@ -16,6 +17,7 @@ pub struct AdditionalLocationInfo {
 pub trait Floxy: Send + Sync + Display {
     fn add_instance_reverse_proxy_config(
         &self,
+        lore: FloxyLoreRef,
         app_name: &str,
         instance_id: InstanceId,
         instance_ip: IpAddr,
@@ -24,6 +26,7 @@ pub trait Floxy: Send + Sync + Display {
 
     fn add_additional_locations_proxy_config(
         &self,
+        lore: FloxyLoreRef,
         app_name: &str,
         instance_id: InstanceId,
         additional_locations: &[AdditionalLocationInfo],
@@ -31,18 +34,21 @@ pub trait Floxy: Send + Sync + Display {
 
     fn delete_additional_locations_proxy_config(
         &self,
+        lore: FloxyLoreRef,
         app_name: &str,
         instance_id: InstanceId,
     ) -> crate::Result<()>;
 
     fn delete_reverse_proxy_config(
         &self,
+        lore: FloxyLoreRef,
         app_name: &str,
         instance_id: InstanceId,
     ) -> crate::Result<()>;
 
     fn delete_server_config(
         &self,
+        lore: FloxyLoreRef,
         app_name: &str,
         instance_id: InstanceId,
         host_port: u16,
@@ -50,6 +56,7 @@ pub trait Floxy: Send + Sync + Display {
 
     fn delete_server_proxy_configs(
         &self,
+        lore: FloxyLoreRef,
         app_name: &str,
         instance_id: InstanceId,
         host_ports: &[u16],
@@ -57,6 +64,7 @@ pub trait Floxy: Send + Sync + Display {
 
     fn add_instance_editor_redirect_to_free_port(
         &self,
+        lore: FloxyLoreRef,
         app_name: &str,
         instance_id: InstanceId,
         instance_ip: IpAddr,
@@ -65,6 +73,7 @@ pub trait Floxy: Send + Sync + Display {
 
     fn add_instance_redirect(
         &self,
+        lore: FloxyLoreRef,
         app_name: &str,
         instance_id: InstanceId,
         instance_ip: IpAddr,
@@ -72,8 +81,8 @@ pub trait Floxy: Send + Sync + Display {
         dest_port: u16,
     ) -> crate::Result<()>;
 
-    fn clear_server_configs(&self) -> crate::Result<()>;
-    fn clear_instance_configs(&self) -> crate::Result<()>;
+    fn clear_server_configs(&self, lore: FloxyLoreRef) -> crate::Result<()>;
+    fn clear_instance_configs(&self, lore: FloxyLoreRef) -> crate::Result<()>;
 }
 
 #[cfg(test)]
