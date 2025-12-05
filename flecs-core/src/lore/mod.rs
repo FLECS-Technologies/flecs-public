@@ -169,7 +169,6 @@ pub struct ImportLore {
 #[derive(Debug)]
 pub struct FloxyLore {
     pub base_path: PathBuf,
-    pub config_path: PathBuf,
 }
 
 #[derive(Debug)]
@@ -310,7 +309,7 @@ impl Lore {
                 conf.import.unwrap_or_default(),
                 &base_path,
             ),
-            floxy: FloxyLore::from_conf_with_defaults(conf.floxy.unwrap_or_default(), &base_path),
+            floxy: FloxyLore::from_conf_with_defaults(conf.floxy.unwrap_or_default()),
             console: ConsoleLore::from_conf_with_defaults(conf.console.unwrap_or_default()),
             instance: InstanceLore::from_conf_with_defaults(
                 conf.instance.unwrap_or_default(),
@@ -371,17 +370,11 @@ impl ImportLore {
 }
 
 impl FloxyLore {
-    pub fn from_conf_with_defaults(conf: conf::FloxyConfig, base_path: &Path) -> Self {
+    pub fn from_conf_with_defaults(conf: conf::FloxyConfig) -> Self {
         let base_path = conf
             .base_path
-            .unwrap_or_else(|| base_path.join(default::floxy::BASE_DIRECTORY_NAME));
-        let config_path = conf
-            .config_path
-            .unwrap_or_else(|| PathBuf::from(default::floxy::CONFIG_PATH));
-        Self {
-            base_path,
-            config_path,
-        }
+            .unwrap_or_else(|| PathBuf::from(default::floxy::BASE_DIRECTORY));
+        Self { base_path }
     }
 
     pub fn instance_editor_location(instance_id: InstanceId, port: u16) -> String {
@@ -550,8 +543,7 @@ pub fn test_lore(
     let mut conf = crate::lore::conf::FlecsConfig::from_var_reader(mock_var_reader).unwrap();
     conf.merge(crate::lore::conf::FlecsConfig {
         floxy: Some(crate::lore::conf::FloxyConfig {
-            config_path: Some(base_path.join("etc/nginx/floxy.conf")),
-            base_path: None,
+            base_path: Some(base_path.join("floxy")),
         }),
         base_path: Some(base_path),
         ..crate::lore::conf::FlecsConfig::default()
@@ -751,10 +743,9 @@ mod tests {
         let base_path = PathBuf::from("/some/base/path");
         let conf = conf::FloxyConfig {
             base_path: Some(base_path.clone()),
-            ..conf::FloxyConfig::default()
         };
         assert_eq!(
-            FloxyLore::from_conf_with_defaults(conf, Path::new("/")).base_path,
+            FloxyLore::from_conf_with_defaults(conf).base_path,
             base_path
         );
     }
@@ -764,30 +755,8 @@ mod tests {
         let base_path = PathBuf::from("/some/base/path");
         let conf = conf::FloxyConfig::default();
         assert_eq!(
-            FloxyLore::from_conf_with_defaults(conf, &base_path).base_path,
-            base_path.join(default::floxy::BASE_DIRECTORY_NAME)
-        );
-    }
-
-    #[test]
-    fn floxy_lore_from_conf_config_path() {
-        let config_path = PathBuf::from("/some/config/path.conf");
-        let conf = conf::FloxyConfig {
-            config_path: Some(config_path.clone()),
-            ..conf::FloxyConfig::default()
-        };
-        assert_eq!(
-            FloxyLore::from_conf_with_defaults(conf, Path::new("/")).config_path,
-            config_path
-        );
-    }
-
-    #[test]
-    fn floxy_lore_from_conf_config_path_default() {
-        let conf = conf::FloxyConfig::default();
-        assert_eq!(
-            FloxyLore::from_conf_with_defaults(conf, Path::new("/")).config_path,
-            Path::new(default::floxy::CONFIG_PATH)
+            FloxyLore::from_conf_with_defaults(conf).base_path,
+            base_path.join(default::floxy::BASE_DIRECTORY)
         );
     }
 

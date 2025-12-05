@@ -191,15 +191,12 @@ impl From<&ImportLore> for ImportConfig {
 pub struct FloxyConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_path: Option<PathBuf>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub config_path: Option<PathBuf>,
 }
 
 impl From<&FloxyLore> for FloxyConfig {
     fn from(value: &FloxyLore) -> Self {
         Self {
             base_path: Some(value.base_path.clone()),
-            config_path: Some(value.config_path.clone()),
         }
     }
 }
@@ -452,7 +449,6 @@ impl Mergeable for ExportConfig {
 impl Mergeable for FloxyConfig {
     fn merge(&mut self, other: Self) {
         self.base_path.trivial_merge(other.base_path);
-        self.config_path.trivial_merge(other.config_path);
     }
 }
 impl Mergeable for ImportConfig {
@@ -726,27 +722,11 @@ mod tests {
         const BASE_PATH: &str = "/test/base/path";
         let mut current = FloxyConfig {
             base_path: Some(PathBuf::from(BASE_PATH)),
-            ..FloxyConfig::default()
         };
         current.merge(FloxyConfig {
             base_path: Some(PathBuf::from("other")),
-            ..FloxyConfig::default()
         });
         assert_eq!(current.base_path, Some(PathBuf::from(BASE_PATH)));
-    }
-
-    #[test]
-    fn merge_floxy_config_config_path_both() {
-        const CONFIG_PATH: &str = "/test/config/path.conf";
-        let mut current = FloxyConfig {
-            config_path: Some(PathBuf::from(CONFIG_PATH)),
-            ..FloxyConfig::default()
-        };
-        current.merge(FloxyConfig {
-            config_path: Some(PathBuf::from("other")),
-            ..FloxyConfig::default()
-        });
-        assert_eq!(current.config_path, Some(PathBuf::from(CONFIG_PATH)));
     }
 
     #[test]

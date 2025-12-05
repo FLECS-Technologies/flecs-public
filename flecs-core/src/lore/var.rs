@@ -166,28 +166,16 @@ pub mod floxy {
     use std::path::PathBuf;
 
     const BASE_PATH: &str = "FLECS_CORE_FLOXY_BASE_PATH";
-    const CONFIG_PATH: &str = "FLECS_CORE_FLOXY_CONFIG_PATH";
 
     fn base_path(reader: &impl VarReader) -> Option<PathBuf> {
         reader.read_path(BASE_PATH)
     }
 
-    fn config_path(reader: &impl VarReader) -> Option<PathBuf> {
-        reader.read_path(CONFIG_PATH)
-    }
-
     impl FloxyConfig {
         pub fn from_var_reader(reader: &impl VarReader) -> Option<Self> {
-            let base_path = base_path(reader);
-            let config_path = config_path(reader);
-            if base_path.is_some() && config_path.is_some() {
-                Some(Self {
-                    base_path,
-                    config_path,
-                })
-            } else {
-                None
-            }
+            base_path(reader).map(|base_path| Self {
+                base_path: Some(base_path),
+            })
         }
     }
 }
