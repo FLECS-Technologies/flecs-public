@@ -31,7 +31,7 @@ FROM debian:bookworm-slim AS flecs
 
 RUN apt-get update && \
     apt-get --yes --no-install-recommends install \
-    ca-certificates nginx && \
+    ca-certificates && \
     apt-get --yes clean && \
     rm -rf /var/lib/apt/lists/*
 
