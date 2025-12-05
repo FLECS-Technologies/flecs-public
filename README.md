@@ -172,44 +172,11 @@ uri = "https://console.flecs.tech/"
 # Environment variable: FLECS_CORE_INSTANCE_BASE_PATH
 base_path = "/var/lib/flecs/instances"
 
-# Settings used to create the default network, this only applies to the creation and won't be applied to an existing
-# network.
 [network]
 # The name of the default network.
 # Default: "flecs"
 # Environment variable: FLECS_CORE_NETWORK_DEFAULT_NETWORK_NAME
 default_network_name = "flecs"
-
-# The subnet of the default network in cidr notation.
-# Default: "172.21.0.0/16"
-# Environment variable: FLECS_CORE_NETWORK_DEFAULT_CIDR_SUBNET
-default_cidr_subnet = "172.21.0.0/16"
-
-# The gateway of the default network.
-# Default: "172.21.0.0/16"
-# Environment variable: FLECS_CORE_NETWORK_DEFAULT_GATEWAY
-default_gateway = "172.21.0.1"
-
-# The network kind of the default network.
-# Allowed values: "Internal", "Bridge", "MACVLAN", "IpvlanL2", "IpvlanL3"
-# Default: "Bridge"
-# Environment variable: FLECS_CORE_NETWORK_DEFAULT_NETWORK_KIND
-default_network_kind = "Bridge"
-
-# The parent adapter of the default network.
-# Default: Not set
-# Environment variable: FLECS_CORE_NETWORK_DEFAULT_PARENT_ADAPTER (Set to an empty string for no parent)
-#default_parent_adapter = "flecs-parent"
-
-# The options the default network.
-# Default: No options
-# Environment variable:
-#   Variable name: FLECS_CORE_NETWORK_DEFAULT_OPTIONS f
-#   Format: Key-Value assignments with '=' separated by ',', e.g. "option1=123,option2=abc"
-#   (Set to an empty string for no options)
-[network.default_options]
-#option1 = 123
-#option2 = abc
 
 [app]
 # The base directory for apps, i.e. where app information is stored (not the images). If this is not set it will be
