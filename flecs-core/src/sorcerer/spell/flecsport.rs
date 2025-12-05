@@ -1,8 +1,8 @@
-use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::ExportLoreRef;
 use crate::quest::SyncQuest;
+use crate::relic::floxy::Floxy;
 use crate::vault::Vault;
 use crate::vault::pouch::{AppKey, Pouch};
 use futures_util::future::join_all;
@@ -213,11 +213,11 @@ pub async fn export_deployment(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::instance::status::InstanceStatus;
     use crate::lore;
     use crate::quest::Quest;
+    use crate::relic::floxy::MockFloxy;
     use crate::relic::var::test::MockVarReader;
     use crate::vault::pouch::app::tests::{
         LABEL_APP_NAME, LABEL_APP_VERSION, MINIMAL_APP_NAME, MINIMAL_APP_VERSION, MOUNT_APP_NAME,

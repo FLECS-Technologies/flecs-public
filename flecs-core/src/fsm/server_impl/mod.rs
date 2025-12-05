@@ -13,6 +13,7 @@ mod system;
 use crate::enchantment::Enchantments;
 use crate::fsm::console_client::ConsoleClient;
 use crate::lore::Lore;
+use crate::relic::Relics;
 use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
 use crate::relic::network::NetworkAdapterReader;
@@ -48,12 +49,6 @@ fn ok() -> AdditionalInfo {
     }
 }
 
-pub struct DeviceReaders<U: UsbDeviceReader, N: NetworkAdapterReader, NET: NetDeviceReader> {
-    pub(crate) usb_reader: Arc<U>,
-    pub(crate) network_adapter_reader: Arc<N>,
-    pub(crate) net_device_reader: Arc<NET>,
-}
-
 pub struct ServerImpl<
     APP: AppRaiser,
     AUTH: Authmancer,
@@ -72,7 +67,7 @@ pub struct ServerImpl<
     vault: Arc<Vault>,
     lore: Arc<Lore>,
     enchantments: Enchantments,
-    device_readers: DeviceReaders<T, NET, NetDev>,
+    relics: Relics<T, NET, NetDev>,
     console_client: ConsoleClient,
     sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
     #[cfg(feature = "auth")]
@@ -100,7 +95,7 @@ impl<
         lore: Arc<Lore>,
         sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
         enchantments: Enchantments,
-        device_readers: DeviceReaders<T, NET, NetDev>,
+        relics: Relics<T, NET, NetDev>,
         #[cfg(feature = "auth")] wall: Wall,
     ) -> Self {
         Self {
@@ -108,7 +103,7 @@ impl<
             vault,
             lore,
             enchantments,
-            device_readers,
+            relics,
             sorcerers,
             #[cfg(feature = "auth")]
             wall,

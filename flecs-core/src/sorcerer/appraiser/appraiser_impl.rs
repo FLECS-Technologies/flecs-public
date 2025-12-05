@@ -1,11 +1,11 @@
 use super::AppRaiser;
-use crate::enchantment::floxy::Floxy;
 use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::app::{AppStatus, Token};
 use crate::jeweler::gem::app::App;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};

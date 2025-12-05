@@ -90,7 +90,7 @@ impl<
         Ok(super::api::v2::exports::post(
             self.vault.clone(),
             self.sorcerers.exportius.clone(),
-            self.enchantments.floxy.clone(),
+            self.relics.floxy.clone(),
             self.enchantments.quest_master.clone(),
             self.lore.clone(),
             body,
@@ -109,8 +109,8 @@ impl<
             self.vault.clone(),
             self.lore.clone(),
             self.sorcerers.importius.clone(),
-            self.enchantments.floxy.clone(),
-            self.device_readers.usb_reader.clone(),
+            self.relics.floxy.clone(),
+            self.relics.usb_device_reader.clone(),
             self.enchantments.quest_master.clone(),
             body,
         )

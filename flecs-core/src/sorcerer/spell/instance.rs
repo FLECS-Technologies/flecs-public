@@ -1,5 +1,4 @@
 pub use super::{Error, Result};
-use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::instance::compose::ComposeInstance;
@@ -13,6 +12,7 @@ use crate::jeweler::gem::manifest::single::AppManifestSingle;
 use crate::jeweler::network::NetworkId;
 use crate::lore::Lore;
 use crate::quest::{State, SyncQuest};
+use crate::relic::floxy::Floxy;
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::spell::provider::GetAuthProviderPortError;
 use crate::vault::pouch::provider::ProviderId;
@@ -810,11 +810,11 @@ pub async fn update_instance(
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::gem::deployment::Deployment;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::manifest::single::EnvironmentVariable;
     use crate::quest::Quest;
+    use crate::relic::floxy::MockFloxy;
     use crate::relic::network::Ipv4Network;
     use crate::vault;
     use crate::vault::pouch::instance::tests::{
@@ -1064,7 +1064,7 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         let floxy = Arc::new(floxy);
         start_instance(
             Quest::new_synced("TestQuest".to_string()),
@@ -1289,7 +1289,7 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         let floxy = Arc::new(floxy);
         start_all_instances_as_desired(Quest::new_synced("TestQuest".to_string()), vault, floxy)
             .await
@@ -1356,7 +1356,7 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         let floxy = Arc::new(floxy);
         assert!(
             start_all_instances_as_desired(

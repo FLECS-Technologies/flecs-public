@@ -1,7 +1,7 @@
-use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::ExportLoreRef;
 use crate::quest::SyncQuest;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::Sorcerer;
 use crate::sorcerer::exportius::{
     ExportAppError, ExportDeploymentError, ExportInstanceError, Exportius,

@@ -1,5 +1,4 @@
 use crate::enchantment::Enchantments;
-use crate::enchantment::floxy::{Floxy, FloxyImpl};
 use crate::enchantment::quest_master::QuestMaster;
 use crate::fsm::ServerHandle;
 use crate::legacy::MigrateError;
@@ -7,6 +6,7 @@ use crate::lore::Lore;
 use crate::quest::{QuestResult, SyncQuest};
 use crate::relic::device::net::{NetDeviceReader, NetDeviceReaderImpl};
 use crate::relic::device::usb::{UsbDeviceReader, UsbDeviceReaderImpl};
+use crate::relic::floxy::Floxy;
 use crate::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::relic::var::EnvReader;
 use crate::relic::{FlecsRelics, Relics};
@@ -194,7 +194,6 @@ impl FlecsWorld {
         Self::new(
             FlecsSorcerers::default(),
             Enchantments {
-                floxy: Arc::new(FloxyImpl::new(lore.clone())),
                 quest_master: QuestMaster::default(),
             },
             FlecsRelics::default(),
@@ -208,7 +207,6 @@ impl FlecsWorld {
         Self::create(
             FlecsSorcerers::default(),
             Enchantments {
-                floxy: Arc::new(FloxyImpl::new(lore.clone())),
                 quest_master: QuestMaster::default(),
             },
             FlecsRelics::default(),
@@ -239,7 +237,7 @@ impl<
         self.server.shutdown().await;
         let instancius = self.sorcerers.instancius;
         let vault = self.vault;
-        let floxy = self.enchantments.floxy.clone();
+        let floxy = self.relics.floxy.clone();
         match self
             .enchantments
             .quest_master
@@ -298,7 +296,7 @@ impl<
         let instancius = self.sorcerers.instancius.clone();
         #[cfg(feature = "auth")]
         let providius = self.sorcerers.providius.clone();
-        let floxy = self.enchantments.floxy.clone();
+        let floxy = self.relics.floxy.clone();
         let vault = self.vault.clone();
         #[cfg(feature = "auth")]
         let watch = self.wall.watch.clone();

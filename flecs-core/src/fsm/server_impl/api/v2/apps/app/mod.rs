@@ -1,5 +1,5 @@
-use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::vault::Vault;
 use crate::vault::pouch::{AppKey, Pouch};
@@ -84,7 +84,7 @@ pub async fn delete<A: AppRaiser + 'static>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::enchantment::floxy::MockFloxy;
+    use crate::relic::floxy::MockFloxy;
     use crate::sorcerer::appraiser::MockAppRaiser;
     use crate::vault::tests::create_empty_test_vault;
     use std::sync::Arc;

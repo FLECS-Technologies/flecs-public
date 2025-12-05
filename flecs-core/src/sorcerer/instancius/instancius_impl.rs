@@ -1,4 +1,3 @@
-use crate::enchantment::floxy::Floxy;
 use crate::forge::bollard::BollardNetworkExtension;
 use crate::forge::vec::VecExtension;
 use crate::jeweler::GetAppKey;
@@ -18,9 +17,10 @@ use crate::jeweler::gem::manifest::single::{
 };
 use crate::jeweler::network::{Network, NetworkId};
 use crate::jeweler::volume::VolumeId;
-use crate::lore::Lore;
+use crate::lore::{FloxyLoreRef, Lore};
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
+use crate::relic::floxy::Floxy;
 use crate::relic::network::Ipv4NetworkAccess;
 use crate::sorcerer::instancius::{
     ConnectInstanceConfigNetworkError, DisconnectInstanceError, GetInstanceConfigBindMountError,
@@ -1212,6 +1212,7 @@ impl Instancius for InstanciusImpl {
     async fn redirect_editor_request(
         &self,
         vault: Arc<Vault>,
+        lore: FloxyLoreRef,
         floxy: Arc<dyn Floxy>,
         instance_id: InstanceId,
         port: NonZeroU16,
@@ -1256,6 +1257,7 @@ impl Instancius for InstanciusImpl {
             return Ok(RedirectEditorRequestResult::InstanceNotConnectedToNetwork);
         };
         let host_port = floxy.add_instance_editor_redirect_to_free_port(
+            lore,
             &instance.app_key().name,
             instance_id,
             network_address,
@@ -1342,13 +1344,13 @@ fn network_access_from_network(
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::gem::deployment::docker::AppInfo;
     use crate::jeweler::gem::deployment::docker::tests::MockedDockerDeployment;
     use crate::jeweler::gem::instance::status::InstanceStatus;
     use crate::jeweler::gem::instance::{InstanceDeserializable, InstanceId};
     use crate::quest::Quest;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
+    use crate::relic::floxy::MockFloxy;
     use crate::relic::network::Ipv4Network;
     use crate::relic::var::test::MockVarReader;
     use crate::vault::pouch::Pouch;
@@ -1401,13 +1403,13 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         floxy
             .expect_delete_reverse_proxy_config()
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         floxy
             .expect_delete_server_proxy_configs()
-            .returning(|_, _, _| Ok(()));
+            .returning(|_, _, _, _| Ok(()));
         let floxy = Arc::new(floxy);
         let vault = vault::tests::create_test_vault(
             HashMap::from([(INSTANCE_TO_DELETE, deployment)]),
@@ -2201,7 +2203,7 @@ pub mod tests {
         let mut floxy = MockFloxy::new();
         floxy
             .expect_delete_additional_locations_proxy_config()
-            .returning(|_, _| Ok(()));
+            .returning(|_, _, _| Ok(()));
         let floxy = Arc::new(floxy);
         InstanciusImpl::default()
             .start_instance(
@@ -4096,11 +4098,13 @@ pub mod tests {
     #[tokio::test]
     async fn redirect_editor_request_instance_not_found() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let floxy = Arc::new(MockFloxy::new());
         assert!(matches!(
             InstanciusImpl::default()
                 .redirect_editor_request(
                     vault,
+                    lore,
                     floxy,
                     UNKNOWN_INSTANCE_1,
                     NonZeroU16::new(100).unwrap()
@@ -4113,11 +4117,13 @@ pub mod tests {
     #[tokio::test]
     async fn redirect_editor_request_unknown_port() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let floxy = Arc::new(MockFloxy::new());
         assert!(matches!(
             InstanciusImpl::default()
                 .redirect_editor_request(
                     vault,
+                    lore,
                     floxy,
                     EDITOR_INSTANCE,
                     NonZeroU16::new(60).unwrap()
@@ -4130,6 +4136,7 @@ pub mod tests {
     #[tokio::test]
     async fn redirect_editor_request_no_reverse_proxy_support() {
         let mut deployment = MockedDockerDeployment::new();
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         deployment
             .expect_id()
             .return_const("MockedDeployment".to_string());
@@ -4154,12 +4161,13 @@ pub mod tests {
         floxy
             .expect_add_instance_editor_redirect_to_free_port()
             .times(1)
-            .returning(|_, _, _, _| Ok(125));
+            .returning(|_, _, _, _, _| Ok(125));
         let floxy = Arc::new(floxy);
         assert_eq!(
             InstanciusImpl::default()
                 .redirect_editor_request(
                     vault,
+                    lore,
                     floxy,
                     EDITOR_INSTANCE,
                     NonZeroU16::new(1234).unwrap()
@@ -4173,11 +4181,13 @@ pub mod tests {
     #[tokio::test]
     async fn redirect_editor_request_reverse_proxy_support() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let floxy = Arc::new(MockFloxy::new());
         assert_eq!(
             InstanciusImpl::default()
                 .redirect_editor_request(
                     vault,
+                    lore,
                     floxy,
                     EDITOR_INSTANCE,
                     NonZeroU16::new(5678).unwrap()
@@ -4190,6 +4200,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn redirect_editor_request_instance_stopped() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
@@ -4212,6 +4223,7 @@ pub mod tests {
             InstanciusImpl::default()
                 .redirect_editor_request(
                     vault,
+                    lore,
                     floxy,
                     EDITOR_INSTANCE,
                     NonZeroU16::new(1234).unwrap()
@@ -4224,6 +4236,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn redirect_editor_request_not_connected_to_network() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
@@ -4250,6 +4263,7 @@ pub mod tests {
             InstanciusImpl::default()
                 .redirect_editor_request(
                     vault,
+                    lore,
                     floxy,
                     EDITOR_INSTANCE,
                     NonZeroU16::new(1234).unwrap()
@@ -4263,11 +4277,13 @@ pub mod tests {
     #[tokio::test]
     async fn redirect_editor_request_existing_redirect() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let floxy = Arc::new(MockFloxy::new());
         assert_eq!(
             InstanciusImpl::default()
                 .redirect_editor_request(
                     vault,
+                    lore,
                     floxy,
                     EDITOR_INSTANCE,
                     NonZeroU16::new(3000).unwrap()
@@ -4280,6 +4296,7 @@ pub mod tests {
 
     #[tokio::test]
     async fn redirect_editor_request_err() {
+        let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_id()
@@ -4302,6 +4319,7 @@ pub mod tests {
             InstanciusImpl::default()
                 .redirect_editor_request(
                     vault,
+                    lore,
                     floxy,
                     EDITOR_INSTANCE,
                     NonZeroU16::new(1234).unwrap()

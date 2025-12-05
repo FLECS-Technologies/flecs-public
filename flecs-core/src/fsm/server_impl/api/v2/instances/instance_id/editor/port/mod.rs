@@ -1,5 +1,6 @@
-use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::lore::FloxyLoreRef;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::instancius::Instancius;
 use crate::sorcerer::instancius::RedirectEditorRequestResult::*;
 use crate::vault::Vault;
@@ -12,13 +13,14 @@ use std::sync::Arc;
 pub async fn get<I: Instancius>(
     vault: Arc<Vault>,
     floxy: Arc<dyn Floxy>,
+    lore: FloxyLoreRef,
     instancius: Arc<I>,
     host: Host,
     instance_id: InstanceId,
     port: NonZeroU16,
 ) -> Result<GetResponse, ()> {
     match instancius
-        .redirect_editor_request(vault, floxy, instance_id, port)
+        .redirect_editor_request(vault, lore, floxy, instance_id, port)
         .await
     {
         Err(e) => Ok(GetResponse::Status500_InternalServerError(
@@ -48,11 +50,14 @@ pub async fn get<I: Instancius>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::enchantment::floxy::MockFloxy;
     use crate::jeweler::gem::instance::InstanceId;
+    use crate::lore;
+    use crate::relic::floxy::MockFloxy;
+    use crate::relic::var::test::MockVarReader;
     use crate::sorcerer::instancius::MockInstancius;
     use std::num::NonZeroU16;
     use std::sync::Arc;
+    use testdir::testdir;
 
     #[tokio::test]
     async fn get_500() {
@@ -60,11 +65,12 @@ mod tests {
         instancius
             .expect_redirect_editor_request()
             .once()
-            .returning(|_, _, _, _| Err(anyhow::anyhow!("TestError")));
+            .returning(|_, _, _, _, _| Err(anyhow::anyhow!("TestError")));
         assert!(matches!(
             get(
                 crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
+                Arc::new(lore::test_lore(testdir!(), &MockVarReader::new())),
                 Arc::new(instancius),
                 Host("host".to_string()),
                 InstanceId::new(6),
@@ -80,13 +86,14 @@ mod tests {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request()
-            .withf(|_, _, id, port| id.value == 6 && port.get() == 1234)
+            .withf(|_, _, _, id, port| id.value == 6 && port.get() == 1234)
             .once()
-            .returning(|_, _, _, _| Ok(Redirected(125)));
+            .returning(|_, _, _, _, _| Ok(Redirected(125)));
         assert_eq!(
             get(
                 crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
+                Arc::new(lore::test_lore(testdir!(), &MockVarReader::new())),
                 Arc::new(instancius),
                 Host("host".to_string()),
                 InstanceId::new(6),
@@ -104,13 +111,14 @@ mod tests {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request()
-            .withf(|_, _, id, port| id.value == 80 && port.get() == 100)
+            .withf(|_, _, _, id, port| id.value == 80 && port.get() == 100)
             .once()
-            .returning(|_, _, _, _| Ok(InstanceNotFound));
+            .returning(|_, _, _, _, _| Ok(InstanceNotFound));
         assert!(matches!(
             get(
                 crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
+                Arc::new(lore::test_lore(testdir!(), &MockVarReader::new())),
                 Arc::new(instancius),
                 Host("host".to_string()),
                 InstanceId::new(80),
@@ -126,13 +134,14 @@ mod tests {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request()
-            .withf(|_, _, id, port| id.value == 1 && port.get() == 60)
+            .withf(|_, _, _, id, port| id.value == 1 && port.get() == 60)
             .once()
-            .returning(|_, _, _, _| Ok(UnknownPort));
+            .returning(|_, _, _, _, _| Ok(UnknownPort));
         assert!(matches!(
             get(
                 crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
+                Arc::new(lore::test_lore(testdir!(), &MockVarReader::new())),
                 Arc::new(instancius),
                 Host("host".to_string()),
                 InstanceId::new(1),
@@ -148,12 +157,13 @@ mod tests {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request()
-            .withf(|_, _, id, port| id.value == 6 && port.get() == 5678)
+            .withf(|_, _, _, id, port| id.value == 6 && port.get() == 5678)
             .once()
-            .returning(|_, _, _, _| Ok(EditorSupportsReverseProxy));
+            .returning(|_, _, _, _, _| Ok(EditorSupportsReverseProxy));
         let result = get(
             crate::vault::tests::create_empty_test_vault(),
             Arc::new(MockFloxy::new()),
+            Arc::new(lore::test_lore(testdir!(), &MockVarReader::new())),
             Arc::new(instancius),
             Host("host".to_string()),
             InstanceId::new(6),
@@ -172,13 +182,14 @@ mod tests {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request()
-            .withf(|_, _, id, port| id.value == 6 && port.get() == 1234)
+            .withf(|_, _, _, id, port| id.value == 6 && port.get() == 1234)
             .once()
-            .returning(|_, _, _, _| Ok(InstanceNotRunning));
+            .returning(|_, _, _, _, _| Ok(InstanceNotRunning));
         assert!(matches!(
             get(
                 crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
+                Arc::new(lore::test_lore(testdir!(), &MockVarReader::new())),
                 Arc::new(instancius),
                 Host("host".to_string()),
                 InstanceId::new(6),
@@ -194,13 +205,14 @@ mod tests {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request()
-            .withf(|_, _, id, port| id.value == 1 && port.get() == 1234)
+            .withf(|_, _, _, id, port| id.value == 1 && port.get() == 1234)
             .once()
-            .returning(|_, _, _, _| Ok(InstanceNotConnectedToNetwork));
+            .returning(|_, _, _, _, _| Ok(InstanceNotConnectedToNetwork));
         assert!(matches!(
             get(
                 crate::vault::tests::create_empty_test_vault(),
                 Arc::new(MockFloxy::new()),
+                Arc::new(lore::test_lore(testdir!(), &MockVarReader::new())),
                 Arc::new(instancius),
                 Host("host".to_string()),
                 InstanceId::new(1),

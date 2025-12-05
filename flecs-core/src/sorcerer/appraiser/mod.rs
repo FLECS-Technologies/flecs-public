@@ -1,9 +1,9 @@
 mod appraiser_impl;
 pub use super::Result;
-use crate::enchantment::floxy::Floxy;
 use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::Sorcerer;
 use crate::vault::Vault;
 use crate::vault::pouch::AppKey;

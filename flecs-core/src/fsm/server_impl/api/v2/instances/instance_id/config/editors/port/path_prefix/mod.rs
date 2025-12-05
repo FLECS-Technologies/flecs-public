@@ -1,5 +1,5 @@
-use crate::enchantment::floxy::Floxy;
 use crate::jeweler::gem::instance::InstanceId;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::instancius::{InstanceEditorPathPrefixError, Instancius};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::{

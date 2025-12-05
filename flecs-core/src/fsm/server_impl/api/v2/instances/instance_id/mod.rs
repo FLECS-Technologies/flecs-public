@@ -5,10 +5,10 @@ pub mod logs;
 pub mod provides;
 pub mod start;
 pub mod stop;
-use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::InstanceLoreRef;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::instancius::Instancius;
 use crate::vault::Vault;
 use flecsd_axum_server::apis::instances::{

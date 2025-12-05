@@ -1,9 +1,9 @@
 pub mod export_id;
-use crate::enchantment::floxy::Floxy;
 use crate::enchantment::quest_master::QuestMaster;
 use crate::jeweler::gem::instance::InstanceId;
 use crate::lore::ExportLoreRef;
 use crate::quest::QuestResult;
+use crate::relic::floxy::Floxy;
 use crate::sorcerer::exportius::Exportius;
 use crate::vault::Vault;
 use crate::vault::pouch::AppKey;
