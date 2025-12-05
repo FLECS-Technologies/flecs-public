@@ -33,51 +33,10 @@ print_usage() {
   echo
 }
 
-create_network() {
-  # check if we have created network 'flecs' before
-  GATEWAY=`docker network inspect --format "{{range .IPAM.Config}}{{.Gateway}}{{end}}" flecs 2>/dev/null`
-
-  # if network 'flecs' does not exist, create it
-  if [ -z "${GATEWAY}" ]; then
-    # list all in-use IP addresses
-    if ifconfig -a >/dev/null 2>&1; then
-      IPS=`ifconfig -a | sed -n -E 's/^[[:space:]]+inet ([0-9\.]+).+$/\1/p'`
-    elif ip addr >/dev/null 2>&1; then
-      IPS=`ip addr -a | sed -n -E 's/^[[:space:]]+inet ([0-9\.]+).+$/\1/p'`
-    else
-      echo "Warning: Cannot determine in-use IP addresses" 1>&2
-    fi
-    # try subnets 172.21.0.0/16 --> 172.31.0.0/16
-    SUBNETS=(21 22 23 24 25 26 27 28 29 30 31)
-    for SUBNET in ${SUBNETS[*]}; do
-      # skip subnets that overlap with in-use IP addresses
-      SKIP_SUBNET=
-      for IP in ${IPS}; do
-        if [[ ${IP} == 172.${SUBNET}.* ]]; then
-          echo "${IP} collides with subnet 172.${SUBNET}.0.0/16 -- skipping"
-          SKIP_SUBNET="true"
-        fi
-      done
-      if [ ! -z "${SKIP_SUBNET}" ]; then
-        continue
-      fi
-      # try to create flecs network as Docker bridge network
-      if docker network create --driver bridge --subnet 172.${SUBNET}.0.0/16 --gateway 172.${SUBNET}.0.1 flecs >/dev/null 2>&1; then
-        GATEWAY="172.${SUBNET}.0.1"
-        break;
-      fi
-    done
-  fi
-
-  if [ -z "${GATEWAY}" ]; then
-    echo "Network 'flecs' does not exist and could not create it" 2>&1
-    exit 1
-  fi
-}
-
 create_container() {
   NETWORK="--network host"
-  VOLUME="--volume /run/docker.sock:/run/docker.sock"
+  VOLUME="--volume /run/docker.sock:/run/docker.sock --volume flecs-floxy_data:/tmp/floxy"
+  docker volume create --driver local -o type=tmpfs -o device=tmpfs -o o=size=4m flecs-floxy_data
   docker create \
     --rm \
     --name ${CONTAINER} \
@@ -107,7 +66,6 @@ case ${1} in
     fi
     ;;
   create)
-    create_network
     create_container
     exit $?
     ;;

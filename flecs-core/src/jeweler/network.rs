@@ -90,6 +90,14 @@ pub enum CreateNetworkError {
     Other(String),
 }
 
+#[derive(thiserror::Error, Debug)]
+pub enum InspectNetworkError {
+    #[error("Network '{0}' does not exist")]
+    NetworkDoesNotExist(String),
+    #[error("Failed to inspect network: {0}")]
+    Other(#[from] Error),
+}
+
 impl From<Error> for CreateNetworkError {
     fn from(value: Error) -> Self {
         Self::Other(value.to_string())
@@ -110,7 +118,7 @@ pub trait NetworkDeployment {
         quest: SyncQuest,
         config: NetworkConfig,
     ) -> Result<Network, CreateNetworkError>;
-    async fn default_network(&self, lore: NetworkLoreRef) -> Result<Network, CreateNetworkError>;
+    async fn default_network(&self, lore: NetworkLoreRef) -> Result<Network, InspectNetworkError>;
     async fn delete_network(&self, id: NetworkId) -> Result<()>;
     async fn network(&self, id: NetworkId) -> Result<Option<Network>>;
     async fn networks(&self, quest: SyncQuest) -> Result<Vec<Network>>;

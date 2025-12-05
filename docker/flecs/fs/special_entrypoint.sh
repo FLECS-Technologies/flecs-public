@@ -18,10 +18,3 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/sbin:/usr/local/bin
 
 containerd >/tmp/containerd.log 2>&1 &
 dockerd >/tmp/dockerd.log 2>&1 &
-
-# wait for Docker daemon to be ready
-while ! docker version >/dev/null 2>&1; do
-    sleep 1
-done
-
-exec flecsd $*

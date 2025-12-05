@@ -9,7 +9,7 @@ use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::AppManifest;
 use crate::jeweler::gem::manifest::multi::AppManifestMulti;
 use crate::jeweler::network::{
-    CreateNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
+    CreateNetworkError, InspectNetworkError, Network, NetworkConfig, NetworkDeployment, NetworkId,
 };
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
 use crate::lore::{ExportLoreRef, ImportLoreRef, NetworkLoreRef};
@@ -463,14 +463,9 @@ impl NetworkDeployment for ComposeDeploymentImpl {
     async fn default_network(
         &self,
         lore: NetworkLoreRef,
-    ) -> anyhow::Result<Network, CreateNetworkError> {
+    ) -> anyhow::Result<Network, InspectNetworkError> {
         let docker_client = self.docker_client()?;
-        DockerDeploymentImpl::default_network_with_client(
-            docker_client,
-            self.network_adapter_reader.as_ref(),
-            lore,
-        )
-        .await
+        DockerDeploymentImpl::default_network_with_client(docker_client, lore).await
     }
 
     async fn delete_network(&self, id: NetworkId) -> anyhow::Result<()> {
