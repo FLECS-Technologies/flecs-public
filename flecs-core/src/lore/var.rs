@@ -410,88 +410,22 @@ pub mod system {
 
 pub mod network {
     use super::Result;
-    use crate::jeweler::network::NetworkKind;
     use crate::lore::conf::NetworkConfig;
-    use crate::relic::network::Ipv4Network;
     use crate::relic::var::VarReader;
-    use std::collections::HashMap;
-    use std::net::Ipv4Addr;
 
     const DEFAULT_NETWORK_NAME: &str = "FLECS_CORE_NETWORK_DEFAULT_NETWORK_NAME";
-    const DEFAULT_CIDR_SUBNET: &str = "FLECS_CORE_NETWORK_DEFAULT_CIDR_SUBNET";
-    const DEFAULT_GATEWAY: &str = "FLECS_CORE_NETWORK_DEFAULT_GATEWAY";
-    const DEFAULT_OPTIONS: &str = "FLECS_CORE_NETWORK_DEFAULT_OPTIONS";
-    const DEFAULT_PARENT_ADAPTER: &str = "FLECS_CORE_NETWORK_DEFAULT_PARENT_ADAPTER";
-    const DEFAULT_NETWORK_KIND: &str = "FLECS_CORE_NETWORK_DEFAULT_NETWORK_KIND";
 
     fn default_network_name(reader: &impl VarReader) -> Result<Option<String>> {
         Ok(reader.read_var(DEFAULT_NETWORK_NAME)?)
     }
 
-    fn default_cidr_subnet(reader: &impl VarReader) -> Result<Option<Ipv4Network>> {
-        Ok(reader.read_network(DEFAULT_CIDR_SUBNET)?)
-    }
-
-    fn default_gateway(reader: &impl VarReader) -> Result<Option<Ipv4Addr>> {
-        Ok(reader.read_ipv4(DEFAULT_GATEWAY)?)
-    }
-
-    fn default_options(reader: &impl VarReader) -> Result<Option<HashMap<String, String>>> {
-        Ok(reader.read_var(DEFAULT_OPTIONS)?.map(|val| {
-            val.split(',')
-                .map(|split| match split.split_once('=') {
-                    None => (split.to_string(), String::new()),
-                    Some((name, val)) => (name.to_string(), val.to_string()),
-                })
-                .collect()
-        }))
-    }
-
-    fn default_parent_adapter(reader: &impl VarReader) -> Result<Option<Option<String>>> {
-        Ok(match reader.read_var(DEFAULT_PARENT_ADAPTER)? {
-            Some(adapter) if adapter.is_empty() => Some(None),
-            Some(adapter) => Some(Some(adapter)),
-            None => None,
-        })
-    }
-
-    fn default_network_kind(reader: &impl VarReader) -> Result<Option<NetworkKind>> {
-        Ok(reader
-            .read_var(DEFAULT_NETWORK_KIND)?
-            .as_deref()
-            .map(NetworkKind::from))
-    }
-
     impl NetworkConfig {
         pub fn from_var_reader(reader: &impl VarReader) -> Result<Option<Self>> {
-            let default_network_name = default_network_name(reader)?;
-            let default_cidr_subnet = default_cidr_subnet(reader)?;
-            let default_gateway = default_gateway(reader)?;
-            let default_options = default_options(reader)?;
-            let default_parent_adapter = match default_parent_adapter(reader)? {
-                None => None,
-                Some(None) => Some(String::new()),
-                Some(Some(adapter)) => Some(adapter),
-            };
-            let default_network_kind = default_network_kind(reader)?;
-            if default_network_name.is_some()
-                || default_cidr_subnet.is_some()
-                || default_gateway.is_some()
-                || default_options.is_some()
-                || default_parent_adapter.is_some()
-                || default_network_kind.is_some()
-            {
-                Ok(Some(Self {
-                    default_network_name,
-                    default_cidr_subnet,
-                    default_gateway,
-                    default_options,
-                    default_parent_adapter,
-                    default_network_kind,
-                }))
-            } else {
-                Ok(None)
-            }
+            Ok(
+                default_network_name(reader)?.map(|default_network_name| Self {
+                    default_network_name: Some(default_network_name),
+                }),
+            )
         }
     }
 

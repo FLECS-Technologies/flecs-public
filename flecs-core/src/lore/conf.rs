@@ -1,16 +1,13 @@
 use crate::forge::serde::{EnvFilterWrapper, UriWrapper};
-use crate::jeweler::network::NetworkKind;
 #[cfg(feature = "auth")]
 use crate::lore::AuthLore;
 use crate::lore::{
     AppLore, ConsoleLore, DeploymentLore, ExportLore, FloxyLore, ImportLore, InstanceLore, Lore,
     ManifestLore, NetworkLore, ProviderLore, SecretLore, SystemLore,
 };
-use crate::relic::network::Ipv4Network;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::ffi::OsStr;
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use thiserror::Error;
@@ -233,31 +230,12 @@ impl From<&InstanceLore> for InstanceConfig {
 pub struct NetworkConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub default_network_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_cidr_subnet: Option<Ipv4Network>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_gateway: Option<Ipv4Addr>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_options: Option<HashMap<String, String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_parent_adapter: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub default_network_kind: Option<NetworkKind>,
 }
 
 impl From<&NetworkLore> for NetworkConfig {
     fn from(value: &NetworkLore) -> Self {
         Self {
             default_network_name: Some(value.default_network_name.clone()),
-            default_cidr_subnet: Some(value.default_cidr_subnet),
-            default_gateway: Some(value.default_gateway),
-            default_options: Some(value.default_options.clone()),
-            default_parent_adapter: if value.default_parent_adapter.is_some() {
-                value.default_parent_adapter.clone()
-            } else {
-                Some(String::new())
-            },
-            default_network_kind: Some(value.default_network_kind),
         }
     }
 }
@@ -469,17 +447,8 @@ impl Mergeable for ManifestConfig {
 }
 impl Mergeable for NetworkConfig {
     fn merge(&mut self, other: Self) {
-        self.default_cidr_subnet
-            .trivial_merge(other.default_cidr_subnet);
-        self.default_gateway.trivial_merge(other.default_gateway);
-        self.default_network_kind
-            .trivial_merge(other.default_network_kind);
         self.default_network_name
             .trivial_merge(other.default_network_name);
-        self.default_options.trivial_merge(other.default_options);
-        (self)
-            .default_parent_adapter
-            .trivial_merge(other.default_parent_adapter);
     }
 }
 
@@ -560,6 +529,7 @@ impl<T> TriviallyMergeable for Option<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::net::Ipv4Addr;
 
     #[derive(Debug, PartialEq, Eq)]
     struct TestMergeable(u64);
@@ -746,92 +716,14 @@ mod tests {
         const DEFAULT_NETWORK_NAME: &str = "DefNet";
         let mut current = NetworkConfig {
             default_network_name: Some(DEFAULT_NETWORK_NAME.to_string()),
-            ..NetworkConfig::default()
         };
         current.merge(NetworkConfig {
             default_network_name: Some("other".to_string()),
-            ..NetworkConfig::default()
         });
         assert_eq!(
             current.default_network_name,
             Some(DEFAULT_NETWORK_NAME.to_string())
         );
-    }
-
-    #[test]
-    fn merge_network_config_default_cidr_subnet_both() {
-        let default_cidr_subnet =
-            Ipv4Network::try_new(Ipv4Addr::new(123, 123, 123, 0), 24).unwrap();
-        let mut current = NetworkConfig {
-            default_cidr_subnet: Some(default_cidr_subnet),
-            ..NetworkConfig::default()
-        };
-        current.merge(NetworkConfig {
-            default_cidr_subnet: Some(
-                Ipv4Network::try_new(Ipv4Addr::new(111, 111, 0, 0), 16).unwrap(),
-            ),
-            ..NetworkConfig::default()
-        });
-        assert_eq!(current.default_cidr_subnet, Some(default_cidr_subnet));
-    }
-
-    #[test]
-    fn merge_network_config_default_gateway_both() {
-        const DEFAULT_GATEWAY: Ipv4Addr = Ipv4Addr::new(123, 123, 123, 1);
-        let mut current = NetworkConfig {
-            default_gateway: Some(DEFAULT_GATEWAY),
-            ..NetworkConfig::default()
-        };
-        current.merge(NetworkConfig {
-            default_gateway: Some(Ipv4Addr::new(111, 111, 0, 1)),
-            ..NetworkConfig::default()
-        });
-        assert_eq!(current.default_gateway, Some(DEFAULT_GATEWAY));
-    }
-
-    #[test]
-    fn merge_network_config_default_options_both() {
-        let default_options = HashMap::from([("opt_1".to_string(), "val_1".to_string())]);
-        let mut current = NetworkConfig {
-            default_options: Some(default_options.clone()),
-            ..NetworkConfig::default()
-        };
-        current.merge(NetworkConfig {
-            default_options: Some(HashMap::new()),
-            ..NetworkConfig::default()
-        });
-        assert_eq!(current.default_options, Some(default_options));
-    }
-
-    #[test]
-    fn merge_network_config_default_parent_adapter_both() {
-        const DEFAULT_PARENT_ADAPTER: &str = "eth_parent";
-        let mut current = NetworkConfig {
-            default_parent_adapter: Some(DEFAULT_PARENT_ADAPTER.to_string()),
-            ..NetworkConfig::default()
-        };
-        current.merge(NetworkConfig {
-            default_parent_adapter: Some("other".to_string()),
-            ..NetworkConfig::default()
-        });
-        assert_eq!(
-            current.default_parent_adapter,
-            Some(DEFAULT_PARENT_ADAPTER.to_string())
-        );
-    }
-
-    #[test]
-    fn merge_network_config_default_network_kind_both() {
-        const DEFAULT_NETWORK_KIND: NetworkKind = NetworkKind::Internal;
-        let mut current = NetworkConfig {
-            default_network_kind: Some(DEFAULT_NETWORK_KIND),
-            ..NetworkConfig::default()
-        };
-        current.merge(NetworkConfig {
-            default_network_kind: Some(NetworkKind::Bridge),
-            ..NetworkConfig::default()
-        });
-        assert_eq!(current.default_network_kind, Some(DEFAULT_NETWORK_KIND));
     }
 
     #[test]

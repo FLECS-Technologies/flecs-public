@@ -63,19 +63,7 @@ pub mod secret {
 }
 
 pub mod network {
-    use crate::jeweler::network::NetworkKind;
-    use crate::relic::network::Ipv4Network;
-    use std::collections::HashMap;
-    use std::net::Ipv4Addr;
-
     pub const DEFAULT_NETWORK_NAME: &str = "flecs";
-    pub const DEFAULT_CIDR_SUBNET: Ipv4Network = Ipv4Network::default();
-    pub const DEFAULT_GATEWAY: Ipv4Addr = Ipv4Addr::new(172, 21, 0, 1);
-    pub const DEFAULT_NETWORK_KIND: NetworkKind = NetworkKind::Bridge;
-
-    pub fn default_network_options() -> HashMap<String, String> {
-        HashMap::new()
-    }
 }
 
 pub mod provider {

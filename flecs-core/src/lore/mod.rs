@@ -1,11 +1,8 @@
 use crate::jeweler::gem::instance::InstanceId;
-use crate::jeweler::network::{NetworkConfig, NetworkKind};
 use crate::lore::conf::Mergeable;
-use crate::relic::network::Ipv4Network;
 use crate::relic::var::VarReader;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -184,29 +181,6 @@ pub struct InstanceLore {
 #[derive(Debug)]
 pub struct NetworkLore {
     pub default_network_name: String,
-    pub default_cidr_subnet: Ipv4Network,
-    pub default_gateway: Ipv4Addr,
-    pub default_options: HashMap<String, String>,
-    pub default_parent_adapter: Option<String>,
-    pub default_network_kind: NetworkKind,
-}
-
-impl NetworkLore {
-    pub fn default_network_config(&self) -> NetworkConfig {
-        let options = if self.default_options.is_empty() {
-            None
-        } else {
-            Some(self.default_options.clone())
-        };
-        NetworkConfig {
-            kind: self.default_network_kind,
-            name: self.default_network_name.clone(),
-            cidr_subnet: Some(self.default_cidr_subnet),
-            gateway: Some(self.default_gateway),
-            parent_adapter: self.default_parent_adapter.clone(),
-            options,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -422,29 +396,8 @@ impl NetworkLore {
         let default_network_name = conf
             .default_network_name
             .unwrap_or_else(|| default::network::DEFAULT_NETWORK_NAME.to_string());
-        let default_cidr_subnet = conf
-            .default_cidr_subnet
-            .unwrap_or(default::network::DEFAULT_CIDR_SUBNET);
-        let default_gateway = conf
-            .default_gateway
-            .unwrap_or(default::network::DEFAULT_GATEWAY);
-        let default_options = conf
-            .default_options
-            .unwrap_or_else(default::network::default_network_options);
-        let default_parent_adapter = match conf.default_parent_adapter {
-            Some(adapter) if !adapter.is_empty() => Some(adapter),
-            _ => None,
-        };
-        let default_network_kind = conf
-            .default_network_kind
-            .unwrap_or(default::network::DEFAULT_NETWORK_KIND);
         Self {
             default_network_name,
-            default_cidr_subnet,
-            default_gateway,
-            default_options,
-            default_parent_adapter,
-            default_network_kind,
         }
     }
 }
@@ -893,7 +846,6 @@ mod tests {
         const NETWORK_NAME: &str = "TESTNET";
         let conf = conf::NetworkConfig {
             default_network_name: Some(NETWORK_NAME.to_string()),
-            ..conf::NetworkConfig::default()
         };
         assert_eq!(
             NetworkLore::from_conf_with_defaults(conf).default_network_name,
@@ -907,133 +859,6 @@ mod tests {
         assert_eq!(
             NetworkLore::from_conf_with_defaults(conf).default_network_name,
             default::network::DEFAULT_NETWORK_NAME
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_default_cidr_subnet() {
-        let subnet = Ipv4Network::try_new(Ipv4Addr::new(135, 246, 70, 0), 24).unwrap();
-        let conf = conf::NetworkConfig {
-            default_cidr_subnet: Some(subnet),
-            ..conf::NetworkConfig::default()
-        };
-        assert_eq!(
-            NetworkLore::from_conf_with_defaults(conf).default_cidr_subnet,
-            subnet
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_default_cidr_subnet_default() {
-        let conf = conf::NetworkConfig::default();
-        assert_eq!(
-            NetworkLore::from_conf_with_defaults(conf).default_cidr_subnet,
-            default::network::DEFAULT_CIDR_SUBNET
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_default_gateway() {
-        let gateway = Ipv4Addr::new(135, 246, 70, 1);
-        let conf = conf::NetworkConfig {
-            default_gateway: Some(gateway),
-            ..conf::NetworkConfig::default()
-        };
-        assert_eq!(
-            NetworkLore::from_conf_with_defaults(conf).default_gateway,
-            gateway
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_default_gateway_default() {
-        let conf = conf::NetworkConfig::default();
-        assert_eq!(
-            NetworkLore::from_conf_with_defaults(conf).default_gateway,
-            default::network::DEFAULT_GATEWAY
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_default_options() {
-        let options = HashMap::from([
-            ("opt_a".to_string(), "val_a".to_string()),
-            ("opt_b".to_string(), "val_b".to_string()),
-        ]);
-        let conf = conf::NetworkConfig {
-            default_options: Some(options.clone()),
-            ..conf::NetworkConfig::default()
-        };
-        assert_eq!(
-            NetworkLore::from_conf_with_defaults(conf).default_options,
-            options
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_default_options_default() {
-        let conf = conf::NetworkConfig::default();
-        assert!(
-            NetworkLore::from_conf_with_defaults(conf)
-                .default_options
-                .is_empty()
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_default_parent_adapter() {
-        const PARENT_ADAPTER: &str = "eth_parent";
-        let conf = conf::NetworkConfig {
-            default_parent_adapter: Some(PARENT_ADAPTER.to_string()),
-            ..conf::NetworkConfig::default()
-        };
-        assert_eq!(
-            NetworkLore::from_conf_with_defaults(conf).default_parent_adapter,
-            Some(PARENT_ADAPTER.to_string()),
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_default_parent_adapter_empty() {
-        let conf = conf::NetworkConfig {
-            default_parent_adapter: Some(String::new()),
-            ..conf::NetworkConfig::default()
-        };
-        assert!(
-            NetworkLore::from_conf_with_defaults(conf)
-                .default_parent_adapter
-                .is_none()
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_default_parent_adapter_default() {
-        let conf = conf::NetworkConfig::default();
-        assert!(
-            NetworkLore::from_conf_with_defaults(conf)
-                .default_parent_adapter
-                .is_none()
-        );
-    }
-    #[test]
-    fn network_lore_from_conf_network_kind() {
-        const NETWORK_KIND: NetworkKind = NetworkKind::Internal;
-        let conf = conf::NetworkConfig {
-            default_network_kind: Some(NETWORK_KIND),
-            ..conf::NetworkConfig::default()
-        };
-        assert_eq!(
-            NetworkLore::from_conf_with_defaults(conf).default_network_kind,
-            NETWORK_KIND,
-        );
-    }
-
-    #[test]
-    fn network_lore_from_conf_network_kind_default() {
-        let conf = conf::NetworkConfig::default();
-        assert_eq!(
-            NetworkLore::from_conf_with_defaults(conf).default_network_kind,
-            default::network::DEFAULT_NETWORK_KIND
         );
     }
 }
