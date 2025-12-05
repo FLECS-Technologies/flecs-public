@@ -22,6 +22,11 @@ jobs:
     container: flecspublic.azurecr.io/flecs-build:${{ inputs.flecs_build_ref }}
 
     steps:
+      - name: Install tomlq
+        # tomlq is provided by yq
+        run: |
+          apt-get update
+          apt-get install --yes yq
       - name: Checkout
         uses: actions/checkout@v4
         with:

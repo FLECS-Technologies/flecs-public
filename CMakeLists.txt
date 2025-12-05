@@ -16,21 +16,40 @@ cmake_minimum_required(VERSION 3.21)
 
 include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
 
+execute_process(
+    COMMAND tomlq -rc ".env.FLECS_VERSION" "${CMAKE_SOURCE_DIR}/.cargo/config.toml"
+    OUTPUT_VARIABLE FLECS_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND_ERROR_IS_FATAL ANY
+)
+execute_process(
+    COMMAND tomlq -rc ".env.FLECS_CODENAME" "${CMAKE_SOURCE_DIR}/.cargo/config.toml"
+    OUTPUT_VARIABLE FLECS_CODENAME
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND_ERROR_IS_FATAL ANY
+)
+execute_process(
+    COMMAND tomlq -rc ".env.FLECS_API_VERSION" "${CMAKE_SOURCE_DIR}/.cargo/config.toml"
+    OUTPUT_VARIABLE API_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND_ERROR_IS_FATAL ANY
+)
+
 project(
     FLECS
-    VERSION 5.0.0
+    VERSION ${FLECS_VERSION}
     HOMEPAGE_URL https://flecs.tech
     LANGUAGES CXX
 )
-set(CODENAME red-deer)
 
 # set version
-set(FLECS_VERSION_FULL "${PROJECT_VERSION}-${CODENAME}")
+set(FLECS_VERSION_FULL "${PROJECT_VERSION}-${FLECS_CODENAME}")
 if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     set(FLECS_VERSION_FULL "${FLECS_VERSION_FULL}-dev")
 endif()
 
-set(API_VERSION 2.0.0)
+message(STATUS "Full FLECS Version: ${FLECS_VERSION_FULL}")
+
 add_definitions(-DFLECS_VERSION="${FLECS_VERSION_FULL}")
 add_definitions(-DFLECS_API_VERSION="${API_VERSION}")
 

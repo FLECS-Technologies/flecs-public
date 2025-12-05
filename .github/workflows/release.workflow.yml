@@ -3,13 +3,43 @@ name: Release
 on:
   workflow_dispatch:
   release:
-    types: [published]
+    types: [ published ]
 
 jobs:
+  set-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install tomlq
+        # tomlq is provided by yq
+        run: |
+          apt-get update
+          apt-get install --yes yq
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Replace version in compose and README
+        run: |
+          FULL_VERSION="$(tomlq -rc '.env.FLECS_VERSION' .cargo/config.toml)-$(tomlq -rc '.env.FLECS_CODENAME' .cargo/config.toml)"
+          sed -i 's/flecs-build:dev/flecs-build:v'"${FULL_VERSION}"'/g' README.md
+          sed -i 's/flecs-slim:dev/flecs-slim:'"${FULL_VERSION}"'/g' pkg/fs/etc/flecs/docker-compose.yml
+          sed -i 's/flecs-webapp:dev/flecs-webapp:'"${FULL_VERSION}"'/g' pkg/fs/etc/flecs/docker-compose.yml
+      - name: Commit and push tag
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add README.md pkg/fs/etc/flecs/docker-compose.yml
+          git commit -m "Set core version in compose and README to ${FULL_VERSION}"
+          git push origin ${{ github.event.release.tag_name }}
+      - name: Attach compose file to release
+        # softprops/action-gh-release@v2.5.0
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: pkg/fs/etc/flecs/docker-compose.yml
   build:
+    needs: set-version
     strategy:
       matrix:
-        arch: ["amd64", "arm64"]
+        arch: [ "amd64", "arm64" ]
 
     uses: ./.github/workflows/build.yml
     with:
@@ -23,7 +53,7 @@ jobs:
 
     strategy:
       matrix:
-        arch: ["amd64", "arm64"]
+        arch: [ "amd64", "arm64" ]
 
     uses: ./.github/workflows/deploy-dl.yml
     with:
