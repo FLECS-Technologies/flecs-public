@@ -154,16 +154,10 @@ base_path = "/var/lib/flecs/import"
 timeout = 9223372036854775807
 
 [floxy]
-# The base directory for floxy, e.g. where instance reverse proxy configs are stored. If this is not set it will be
-# derived from the general flecsd base_path.
-# Default: "<flecsd-base_path>/floxy"
+# The base directory for floxy, e.g. where instance reverse proxy configs are stored.
+# Default: "/tmp/floxy"
 # Environment variable: FLECS_CORE_FLOXY_BASE_PATH
-base_path = "/var/lib/flecs/floxy"
-
-# The main configuration file of floxy which is loaded by nginx.
-# Default: "/etc/nginx/floxy.conf"
-# Environment variable: FLECS_CORE_FLOXY_CONFIG_PATH
-config_path = "/etc/nginx/floxy.conf"
+base_path = "/tmp/floxy"
 
 [console]
 # The console uri the core connects to.
