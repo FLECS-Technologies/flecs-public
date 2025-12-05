@@ -16,7 +16,7 @@
 PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/sbin:/usr/local/bin
 FLOXY_CONTAINER_NAME=flecs-floxy
 # TODO: Change tag to latest before release
-FLOXY_IMAGE=flecspublic.azurecr.io/flecs/floxy:develop
+FLOXY_IMAGE=flecspublic.azurecr.io/flecs/floxy:debug
 
 create_network() {
   NETWORK=flecs
@@ -117,13 +117,11 @@ start_floxy() {
         --network host \
         --volume flecs-floxy_certs:/etc/nginx/certs \
         --volume flecs-floxy_data:/tmp/floxy \
-        --publish "${HTTP_PORT}:80" \
-        --publish "${HTTPS_PORT}:443" \
         --env "FLOXY_HTTP_PORT=${HTTP_PORT}" \
         --env "FLOXY_HTTPS_PORT=${HTTPS_PORT}" \
         --env "FLOXY_FLECS_GATEWAY=$1" \
         "${FLOXY_IMAGE}"
-  docker run ${FLOXY_CONTAINER_NAME}
+  docker start ${FLOXY_CONTAINER_NAME}
 }
 
 # Execute special entrypoint script not in common between flecs and flecs-slim
