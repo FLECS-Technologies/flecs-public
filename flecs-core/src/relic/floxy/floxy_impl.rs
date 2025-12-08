@@ -302,27 +302,27 @@ impl FloxyImpl {
         format!(
             "
 location {location} {{
-   server_name_in_redirect on;
-   return 307 $request_uri/;
+  server_name_in_redirect on;
+  return 307 $request_uri/;
 
-   location ~ ^{location}/(.*) {{
-      set $upstream http://{instance_ip}:{dest_port}/$1$is_args$args;
-      proxy_pass $upstream;
+  location ~ ^{location}/(.*) {{
+    set $upstream http://{instance_ip}:{dest_port}/$1$is_args$args;
+    proxy_pass $upstream;
 
-      proxy_http_version 1.1;
+    proxy_http_version 1.1;
 
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
 
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }}
+    client_max_body_size 0;
+    client_body_timeout 30m;
+  }}
 }}"
         )
     }
@@ -331,12 +331,12 @@ location {location} {{
         format!(
             "
 location {additional_location} {{
-   server_name_in_redirect on;
-   return 307 {location};
+  server_name_in_redirect on;
+  return 307 {location};
 }}
 location ~ ^{additional_location}/(.*) {{
-   server_name_in_redirect on;
-   return 307 {location}/$1;
+  server_name_in_redirect on;
+  return 307 {location}/$1;
 }}"
         )
     }
@@ -345,25 +345,25 @@ location ~ ^{additional_location}/(.*) {{
         format!(
             "
 server {{
-   listen {host_port};
-   location / {{
-      set $upstream http://{instance_ip}:{dest_port};
-      proxy_pass $upstream;
+  listen {host_port};
+  location / {{
+    set $upstream http://{instance_ip}:{dest_port};
+    proxy_pass $upstream;
 
-      proxy_http_version 1.1;
+    proxy_http_version 1.1;
 
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
 
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }}
+    client_max_body_size 0;
+    client_body_timeout 30m;
+  }}
 }}"
         )
     }
@@ -409,73 +409,73 @@ mod tests {
 
     const EXPECTED_TRIPLE_CONFIG: &str = "
 location /v2/instances/1234abcd/editor/5000 {
-   server_name_in_redirect on;
-   return 307 $request_uri/;
+  server_name_in_redirect on;
+  return 307 $request_uri/;
 
-   location ~ ^/v2/instances/1234abcd/editor/5000/(.*) {
-      set $upstream http://123.123.234.234:5000/$1$is_args$args;
-      proxy_pass $upstream;
+  location ~ ^/v2/instances/1234abcd/editor/5000/(.*) {
+    set $upstream http://123.123.234.234:5000/$1$is_args$args;
+    proxy_pass $upstream;
 
-      proxy_http_version 1.1;
+    proxy_http_version 1.1;
 
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
 
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }
+    client_max_body_size 0;
+    client_body_timeout 30m;
+  }
 }
 location /v2/instances/1234abcd/editor/6000 {
-   server_name_in_redirect on;
-   return 307 $request_uri/;
+  server_name_in_redirect on;
+  return 307 $request_uri/;
 
-   location ~ ^/v2/instances/1234abcd/editor/6000/(.*) {
-      set $upstream http://123.123.234.234:6000/$1$is_args$args;
-      proxy_pass $upstream;
+  location ~ ^/v2/instances/1234abcd/editor/6000/(.*) {
+    set $upstream http://123.123.234.234:6000/$1$is_args$args;
+    proxy_pass $upstream;
 
-      proxy_http_version 1.1;
+    proxy_http_version 1.1;
 
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
 
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }
+    client_max_body_size 0;
+    client_body_timeout 30m;
+  }
 }
 location /v2/instances/1234abcd/editor/7000 {
-   server_name_in_redirect on;
-   return 307 $request_uri/;
+  server_name_in_redirect on;
+  return 307 $request_uri/;
 
-   location ~ ^/v2/instances/1234abcd/editor/7000/(.*) {
-      set $upstream http://123.123.234.234:7000/$1$is_args$args;
-      proxy_pass $upstream;
+  location ~ ^/v2/instances/1234abcd/editor/7000/(.*) {
+    set $upstream http://123.123.234.234:7000/$1$is_args$args;
+    proxy_pass $upstream;
 
-      proxy_http_version 1.1;
+    proxy_http_version 1.1;
 
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
 
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }
+    client_max_body_size 0;
+    client_body_timeout 30m;
+  }
 }";
 
     const TRIPLE_DEST_PORTS: [u16; 3] = [5000, 6000, 7000];
@@ -567,25 +567,25 @@ location /v2/instances/1234abcd/editor/7000 {
     fn create_server_config_test() {
         const EXPECTED_CONFIG: &str = "
 server {
-   listen 5050;
-   location / {
-      set $upstream http://123.123.234.234:9090;
-      proxy_pass $upstream;
+  listen 5050;
+  location / {
+    set $upstream http://123.123.234.234:9090;
+    proxy_pass $upstream;
 
-      proxy_http_version 1.1;
+    proxy_http_version 1.1;
 
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
 
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }
+    client_max_body_size 0;
+    client_body_timeout 30m;
+  }
 }";
         assert_eq!(
             FloxyImpl::create_server_config(
@@ -601,27 +601,27 @@ server {
     fn create_instance_config_test() {
         const EXPECTED_CONFIG: &str = "
 location TEST_LOCATION {
-   server_name_in_redirect on;
-   return 307 $request_uri/;
+  server_name_in_redirect on;
+  return 307 $request_uri/;
 
-   location ~ ^TEST_LOCATION/(.*) {
-      set $upstream http://30.60.120.240:7799/$1$is_args$args;
-      proxy_pass $upstream;
+  location ~ ^TEST_LOCATION/(.*) {
+    set $upstream http://30.60.120.240:7799/$1$is_args$args;
+    proxy_pass $upstream;
 
-      proxy_http_version 1.1;
+    proxy_http_version 1.1;
 
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
 
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }
+    client_max_body_size 0;
+    client_body_timeout 30m;
+  }
 }";
         assert_eq!(
             FloxyImpl::create_instance_config(
@@ -959,25 +959,25 @@ location TEST_LOCATION {
         let expected_config_content = format!(
             "
 server {{
-   listen {port};
-   location / {{
-      set $upstream http://123.123.123.123:50000;
-      proxy_pass $upstream;
+  listen {port};
+  location / {{
+    set $upstream http://123.123.123.123:50000;
+    proxy_pass $upstream;
 
-      proxy_http_version 1.1;
+    proxy_http_version 1.1;
 
-      proxy_set_header Upgrade $http_upgrade;
-      proxy_set_header Connection $connection_upgrade;
-      proxy_set_header Host $host;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Host $host;
-      proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
 
-      client_max_body_size 0;
-      client_body_timeout 30m;
-   }}
+    client_max_body_size 0;
+    client_body_timeout 30m;
+  }}
 }}"
         );
         assert_eq!(
