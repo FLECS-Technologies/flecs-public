@@ -41,19 +41,8 @@ function(stage_docker_fs)
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
-    install(FILES ${CMAKE_SOURCE_DIR}/pkg/fs/etc/nginx/floxy.conf
-        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/etc/nginx
-        COMPONENT docker
-        EXCLUDE_FROM_ALL
-    )
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/pkg/fs/usr/share/flecs/auth/
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/share/flecs/auth
-        COMPONENT docker
-        EXCLUDE_FROM_ALL
-    )
-    # Create log directory for nginx (floxy), as nginx itself can not
-    install(
-        DIRECTORY DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/var/log/floxy/
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
