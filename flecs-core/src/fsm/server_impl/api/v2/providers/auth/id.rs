@@ -9,8 +9,6 @@ use serde::Deserialize;
 use serde_with::{DisplayFromStr, serde_as};
 use utoipa::IntoParams;
 
-pub mod path;
-
 #[serde_as]
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetPathParams {

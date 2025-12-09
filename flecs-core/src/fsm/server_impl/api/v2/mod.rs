@@ -103,14 +103,11 @@ impl Modify for RenameOps {
         providers::auth::get,
         providers::auth::core::get,
         providers::auth::core::put,
-        providers::auth::core::path::any,
         providers::auth::default::delete,
         providers::auth::default::get,
         providers::auth::default::put,
-        providers::auth::default::path::any,
         providers::auth::first_time_setup::flecsport::post,
         providers::auth::id::get,
-        providers::auth::id::path::any,
         system::sbom::get,
     ))
 )]

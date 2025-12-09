@@ -23,7 +23,6 @@ use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 #[cfg(feature = "auth")]
 use axum::response::IntoResponse;
 #[cfg(feature = "auth")]
-use axum::routing::any;
 use axum::routing::{delete, get, put};
 use axum::{
     Router,
@@ -253,10 +252,6 @@ async fn create_service<
             get(server_impl::api::v2::providers::auth::get),
         )
         .route(
-            "/v2/providers/auth/core/*path",
-            any(server_impl::api::v2::providers::auth::core::path::any),
-        )
-        .route(
             "/v2/providers/auth/core",
             get(server_impl::api::v2::providers::auth::core::get),
         )
@@ -267,16 +262,8 @@ async fn create_service<
                 .put(server_impl::api::v2::providers::auth::default::put),
         )
         .route(
-            "/v2/providers/auth/default/*path",
-            any(server_impl::api::v2::providers::auth::default::path::any),
-        )
-        .route(
             "/v2/providers/auth/:id",
             get(server_impl::api::v2::providers::auth::id::get),
-        )
-        .route(
-            "/v2/providers/auth/:provider_id/*path",
-            any(server_impl::api::v2::providers::auth::id::path::any),
         );
     // The following routes are exempt from the enforcer middleware and the roles/authentication has
     // to be checked in each handler

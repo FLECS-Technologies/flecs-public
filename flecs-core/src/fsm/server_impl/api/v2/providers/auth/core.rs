@@ -1,5 +1,3 @@
-pub mod path;
-
 use crate::fsm::server_impl::api::v2::models::{AdditionalInfo, PutProviderReferenceRequest};
 use crate::fsm::server_impl::state::{ProvidiusState, VaultState, WatchState};
 use crate::sorcerer::providius::SetCoreAuthProviderError;
