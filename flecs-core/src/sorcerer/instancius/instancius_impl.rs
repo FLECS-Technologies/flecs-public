@@ -16,7 +16,7 @@ use crate::jeweler::gem::manifest::single::{
 };
 use crate::jeweler::network::{Network, NetworkId};
 use crate::jeweler::volume::VolumeId;
-use crate::lore::{FloxyLoreRef, Lore};
+use crate::lore::{FloxyLore, FloxyLoreRef, Lore};
 use crate::quest::SyncQuest;
 use crate::relic::device::usb::{UsbDevice, UsbDeviceReader};
 use crate::relic::floxy::Floxy;
@@ -448,7 +448,7 @@ impl Instancius for InstanciusImpl {
         Ok(InstanceEditor {
             name: editor.name.clone(),
             port,
-            url: crate::lore::FloxyLore::instance_editor_location(id, port),
+            url: crate::lore::FloxyLore::instance_editor_api_location(id, port),
             path_prefix,
         })
     }
@@ -482,7 +482,7 @@ impl Instancius for InstanciusImpl {
                 InstanceEditor {
                     name: editor.name.clone(),
                     port,
-                    url: crate::lore::FloxyLore::instance_editor_location(id, port),
+                    url: crate::lore::FloxyLore::instance_editor_api_location(id, port),
                     path_prefix,
                 }
             })
@@ -1203,7 +1203,9 @@ impl Instancius for InstanciusImpl {
         {
             None => return Ok(RedirectEditorRequestResult::UnknownPort),
             Some(editor) if editor.supports_reverse_proxy => {
-                return Ok(RedirectEditorRequestResult::EditorSupportsReverseProxy);
+                return Ok(RedirectEditorRequestResult::EditorSupportsReverseProxy(
+                    FloxyLore::instance_editor_location(instance_id, editor.port.get()),
+                ));
             }
             _ => {}
         }
@@ -4154,7 +4156,9 @@ pub mod tests {
                 )
                 .await
                 .unwrap(),
-            RedirectEditorRequestResult::EditorSupportsReverseProxy
+            RedirectEditorRequestResult::EditorSupportsReverseProxy(format!(
+                "/flecs/instances/{EDITOR_INSTANCE}/editor/5678"
+            ))
         );
     }
 

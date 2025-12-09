@@ -320,7 +320,7 @@ impl DockerInstance {
                 models::InstanceEditor {
                     name: editor.name.clone(),
                     port: editor.port.get(),
-                    url: lore::FloxyLore::instance_editor_location(self.id, editor.port.get()),
+                    url: lore::FloxyLore::instance_editor_api_location(self.id, editor.port.get()),
                     path_prefix,
                 }
             })
@@ -2020,13 +2020,13 @@ pub mod tests {
                     name: "Editor#1".to_string(),
                     port: 123,
                     path_prefix: None,
-                    url: "/flecs/instances/00000123/editor/123".to_string(),
+                    url: "/v2/instances/00000123/editor/123".to_string(),
                 },
                 models::InstanceEditor {
                     name: "Editor#2".to_string(),
                     port: 789,
                     path_prefix: None,
-                    url: "/flecs/instances/00000123/editor/789".to_string(),
+                    url: "/v2/instances/00000123/editor/789".to_string(),
                 },
             ])),
         };
@@ -2140,13 +2140,13 @@ pub mod tests {
                     name: "Editor#1".to_string(),
                     port: 123,
                     path_prefix: None,
-                    url: "/flecs/instances/00000123/editor/123".to_string(),
+                    url: "/v2/instances/00000123/editor/123".to_string(),
                 },
                 models::InstanceEditor {
                     name: "Editor#2".to_string(),
                     port: 789,
                     path_prefix: None,
-                    url: "/flecs/instances/00000123/editor/789".to_string(),
+                    url: "/v2/instances/00000123/editor/789".to_string(),
                 },
             ])),
         };

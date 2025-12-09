@@ -351,6 +351,10 @@ impl FloxyLore {
         Self { base_path }
     }
 
+    pub fn instance_editor_api_location(instance_id: InstanceId, port: u16) -> String {
+        format!("/v2/instances/{instance_id}/editor/{port}")
+    }
+
     pub fn instance_editor_location(instance_id: InstanceId, port: u16) -> String {
         format!("/flecs/instances/{instance_id}/editor/{port}")
     }
