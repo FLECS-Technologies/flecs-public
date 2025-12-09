@@ -409,34 +409,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
-  /providers/auth/core/{path}:
-    head:
-      tags:
-      - Experimental
-      description: Access the core auth provider, on success the response will redirect
-      operationId: head_providers_auth_core_{path}
-      parameters:
-      - name: path
-        in: path
-        description: The path to forward to the default auth provider
-        required: true
-        schema:
-          type: string
-      responses:
-        '307':
-          description: Redirect to the location of the auth provider
-          headers:
-            location:
-              schema:
-                type: string
-        '404':
-          description: No core auth provider set
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdditionalInfo'
   /providers/auth/default:
     get:
       tags:
@@ -503,34 +475,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdditionalInfo'
-  /providers/auth/default/{path}:
-    head:
-      tags:
-      - Experimental
-      description: Access the default auth provider, on success the response will redirect
-      operationId: head_providers_auth_default_{path}
-      parameters:
-      - name: path
-        in: path
-        description: The path to forward to the default auth provider
-        required: true
-        schema:
-          type: string
-      responses:
-        '307':
-          description: Redirect to the location of the default provider
-          headers:
-            location:
-              schema:
-                type: string
-        '404':
-          description: No default auth provider set
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdditionalInfo'
   /providers/auth/first-time-setup/flecsport:
     post:
       tags:
@@ -571,40 +515,6 @@ paths:
                 $ref: '#/components/schemas/AuthProvider'
         '404':
           description: Auth provider was not found
-  /providers/auth/{provider_id}/{path}:
-    head:
-      tags:
-      - Experimental
-      description: Access the auth provider with the specified id, on success the response will redirect
-      operationId: head_providers_auth_{provider_id}_{path}
-      parameters:
-      - name: provider_id
-        in: path
-        description: The id of the auth provider
-        required: true
-        schema:
-          $ref: '#/components/schemas/HexString8'
-      - name: path
-        in: path
-        description: The path to forward to the specified auth provider
-        required: true
-        schema:
-          type: string
-      responses:
-        '307':
-          description: Redirect to the location of the specified auth provider
-          headers:
-            location:
-              schema:
-                type: string
-        '404':
-          description: Auth provider not found
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdditionalInfo'
   /providers/{feature}:
     get:
       tags:
