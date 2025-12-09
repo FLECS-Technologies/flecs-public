@@ -6,8 +6,7 @@ use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::instance::docker::config::{
-    AuthProviderConfig, InstanceConfig, InstancePortMapping, ProviderConfig, TransportProtocol,
-    UsbPathConfig,
+    InstanceConfig, InstancePortMapping, TransportProtocol, UsbPathConfig,
 };
 use crate::jeweler::gem::instance::{Instance, InstanceId, Logs};
 use crate::jeweler::gem::manifest::AppManifest;
@@ -49,39 +48,11 @@ impl Sorcerer for InstanciusImpl {}
 impl InstanciusImpl {
     async fn create_docker_instance(
         quest: SyncQuest,
-        vault: Arc<Vault>,
         deployment: Arc<dyn DockerDeployment>,
         lore: Arc<Lore>,
         manifest: Arc<AppManifestSingle>,
         instance_name: String,
     ) -> anyhow::Result<Instance> {
-        let auth_provider_config = quest
-            .lock()
-            .await
-            .create_sub_quest("Reserve auth provider port", |quest| {
-                let (vault, manifest) = (vault.clone(), manifest.clone());
-                async move {
-                    match &manifest.specific_providers.auth {
-                        Some(_) => {
-                            let port = spell::instance::make_auth_port_reservation(vault)
-                                .await
-                                .ok_or_else(|| anyhow::anyhow!("No free auth port available"))?;
-                            quest.lock().await.detail = Some(format!("Reserved {}", port));
-                            Ok::<_, anyhow::Error>(Some(AuthProviderConfig { port }))
-                        }
-                        None => Ok(None),
-                    }
-                }
-            })
-            .await
-            .2;
-        let provider_config = ProviderConfig {
-            auth: auth_provider_config.await?,
-        };
-        let auth_provider_port = provider_config
-            .auth
-            .as_ref()
-            .map(|auth_provider_config| auth_provider_config.port);
         let instance = quest
             .lock()
             .await
@@ -97,16 +68,12 @@ impl InstanciusImpl {
                         deployment,
                         manifest,
                         instance_name,
-                        provider_config,
                     )
                 },
             )
             .await
             .2;
         let instance = instance.await;
-        if let Some(auth_provider_port) = auth_provider_port {
-            spell::instance::clear_auth_port_reservation(vault.clone(), auth_provider_port).await;
-        }
         Ok(Instance::Docker(instance?))
     }
     async fn create_compose_instance(
@@ -371,14 +338,7 @@ impl Instancius for InstanciusImpl {
                     .lock()
                     .await
                     .create_sub_quest(format!("Create docker instance {name}"), |quest| {
-                        Self::create_docker_instance(
-                            quest,
-                            vault.clone(),
-                            deployment,
-                            lore,
-                            manifest,
-                            name,
-                        )
+                        Self::create_docker_instance(quest, deployment, lore, manifest, name)
                     })
                     .await
                     .2

@@ -238,9 +238,7 @@ pub fn get_provider(
 }
 
 #[cfg(feature = "auth")]
-pub fn get_auth_providers(
-    instances: &pouch::instance::Gems,
-) -> HashMap<ProviderId, (AuthProvider, u16)> {
+pub fn get_auth_providers(instances: &pouch::instance::Gems) -> HashMap<ProviderId, AuthProvider> {
     instances
         .iter()
         .filter_map(|(id, instance)| {
@@ -250,24 +248,9 @@ pub fn get_auth_providers(
                 .auth
                 .as_ref()?
                 .clone();
-            let port = match instance {
-                Instance::Docker(instance) => Some(instance.config.providers.auth.as_ref()?.port),
-                _ => None,
-            }?;
-            Some((*id, (auth_provider, port)))
+            Some((*id, auth_provider))
         })
         .collect()
-}
-
-pub fn resolve_provider_reference(
-    providers: &pouch::provider::Gems,
-    feature: &FeatureKey,
-    provider_reference: ProviderReference,
-) -> Option<ProviderId> {
-    match provider_reference {
-        ProviderReference::Default => get_default_provider_id(providers, feature),
-        ProviderReference::Provider(id) => Some(id),
-    }
 }
 
 pub fn get_providers(

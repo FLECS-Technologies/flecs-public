@@ -1,5 +1,7 @@
+use crate::fsm::server_impl::api::ForwardedHeaders;
 use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
+use crate::sorcerer::providius::ReplacementUrlParts;
 use crate::vault::pouch::provider::ProviderId;
 use axum::Json;
 use axum::extract::{Host, Path, State};
@@ -32,9 +34,13 @@ pub async fn get(
     State(ProvidiusState(providius)): State<ProvidiusState>,
     Path(GetPathParams { id }): Path<GetPathParams>,
     host: Host,
+    forwarded: ForwardedHeaders,
 ) -> Response {
     match providius
-        .get_auth_providers_and_default(vault, &host)
+        .get_auth_providers_and_default(
+            vault,
+            &ReplacementUrlParts::from_forwarded_and_host(forwarded, host),
+        )
         .await
         .providers
         .remove(&id)

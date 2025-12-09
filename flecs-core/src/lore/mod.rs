@@ -352,7 +352,11 @@ impl FloxyLore {
     }
 
     pub fn instance_editor_location(instance_id: InstanceId, port: u16) -> String {
-        format!("/v2/instances/{instance_id}/editor/{port}")
+        format!("/flecs/instances/{instance_id}/editor/{port}")
+    }
+
+    pub fn auth_provider_location(instance_id: InstanceId) -> String {
+        format!("/flecs/providers/auth/{instance_id}")
     }
 
     pub fn server_config_path(&self) -> PathBuf {

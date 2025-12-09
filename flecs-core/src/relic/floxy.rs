@@ -22,6 +22,7 @@ pub trait Floxy: Send + Sync + Display {
         instance_id: InstanceId,
         instance_ip: IpAddr,
         dest_ports: &[u16],
+        auth_provider_port: Option<u16>,
     ) -> crate::Result<()>;
 
     fn add_additional_locations_proxy_config(

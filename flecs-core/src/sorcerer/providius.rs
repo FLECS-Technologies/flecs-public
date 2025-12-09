@@ -23,6 +23,34 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
+pub struct ForwardedHeaders {
+    pub protocol: Option<String>,
+    pub port: Option<u16>,
+    pub host: Option<String>,
+}
+
+pub struct ReplacementUrlParts {
+    pub protocol: String,
+    pub port: u16,
+    pub host: String,
+}
+
+impl ReplacementUrlParts {
+    pub fn from_forwarded_and_host(forwarded: ForwardedHeaders, host: axum::extract::Host) -> Self {
+        let protocol = forwarded.protocol.unwrap_or_else(|| "https".to_string());
+        let port = forwarded.port.unwrap_or(match protocol.as_str() {
+            "http" => 80,
+            _ => 443,
+        });
+        let host = forwarded.host.unwrap_or(host.0);
+        Self {
+            protocol,
+            port,
+            host,
+        }
+    }
+}
+
 pub struct ProvidersAndDefaults {
     pub providers: HashMap<FeatureKey, HashMap<ProviderId, Provider>>,
     pub defaults: HashMap<FeatureKey, ProviderId>,
@@ -71,7 +99,7 @@ pub trait Providius: Sorcerer {
     async fn get_auth_providers_and_default(
         &self,
         vault: Arc<Vault>,
-        host: &axum::extract::Host,
+        replacement_url_parts: &ReplacementUrlParts,
     ) -> AuthProvidersAndDefaults;
     async fn get_providers(
         &self,
@@ -137,15 +165,6 @@ pub trait Providius: Sorcerer {
         id: InstanceId,
         provider_reference: ProviderReference,
     ) -> Result<Option<ProviderReference>, SetDependencyError>;
-    async fn get_auth_provider_port(
-        &self,
-        vault: Arc<Vault>,
-        provider_reference: ProviderReference,
-    ) -> Result<u16, GetAuthProviderPortError>;
-    async fn get_core_auth_provider_port(
-        &self,
-        vault: Arc<Vault>,
-    ) -> Result<u16, GetAuthProviderPortError>;
     #[cfg(feature = "auth")]
     async fn build_watch_config_from_auth_provider(
         &self,

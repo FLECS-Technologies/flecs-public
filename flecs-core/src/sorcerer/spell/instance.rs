@@ -3,7 +3,7 @@ use crate::jeweler::gem::deployment::compose::ComposeDeployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
 use crate::jeweler::gem::instance::compose::ComposeInstance;
 use crate::jeweler::gem::instance::docker::DockerInstance;
-use crate::jeweler::gem::instance::docker::config::{InstanceConfig, ProviderConfig};
+use crate::jeweler::gem::instance::docker::config::InstanceConfig;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::instance::{Instance, InstanceId, ProviderReference};
 use crate::jeweler::gem::manifest::FeatureKey;
@@ -14,7 +14,6 @@ use crate::lore::Lore;
 use crate::quest::{State, SyncQuest};
 use crate::relic::floxy::Floxy;
 use crate::relic::network::Ipv4NetworkAccess;
-use crate::sorcerer::spell::provider::GetAuthProviderPortError;
 use crate::vault::pouch::provider::ProviderId;
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault, pouch};
@@ -57,9 +56,8 @@ pub async fn create_docker_instance(
     deployment: Arc<dyn DockerDeployment>,
     manifest: Arc<AppManifestSingle>,
     name: String,
-    provider_config: ProviderConfig,
 ) -> Result<DockerInstance> {
-    DockerInstance::try_create_new(quest, lore, deployment, manifest, name, provider_config).await
+    DockerInstance::try_create_new(quest, lore, deployment, manifest, name).await
 }
 
 pub async fn create_compose_instance(
@@ -608,30 +606,6 @@ pub async fn make_ipv4_reservation(
         .reserve_free_ipv4_address(network)
 }
 
-pub async fn make_auth_port_reservation(vault: Arc<Vault>) -> Option<u16> {
-    vault
-        .reservation()
-        .reserve_instance_pouch_mut()
-        .grab()
-        .await
-        .instance_pouch_mut
-        .as_mut()
-        .expect("Vault reservations should never fail")
-        .reserve_auth_port()
-}
-
-pub async fn clear_auth_port_reservation(vault: Arc<Vault>, port: u16) -> bool {
-    vault
-        .reservation()
-        .reserve_instance_pouch_mut()
-        .grab()
-        .await
-        .instance_pouch_mut
-        .as_mut()
-        .expect("Vault reservations should never fail")
-        .clear_reserved_provider_port(port)
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum QueryInstanceConfigError {
     #[error("Instance {0} not found")]
@@ -701,22 +675,6 @@ where
         Some(Instance::Compose(_)) => Err(QueryInstanceConfigError::NotSupported(instance_id)),
         Some(Instance::Docker(instance)) => Ok(with(&instance.config)),
     }
-}
-
-pub fn get_auth_provider_port(
-    instances: &pouch::instance::Gems,
-    provider_id: ProviderId,
-) -> Result<u16, GetAuthProviderPortError> {
-    get_instance_config_part_with_from_gems(instances, provider_id, |config| {
-        Ok::<u16, GetAuthProviderPortError>(
-            config
-                .providers
-                .auth
-                .as_ref()
-                .ok_or(GetAuthProviderPortError::DoesNotProvide { id: provider_id })?
-                .port,
-        )
-    })?
 }
 
 pub async fn query_instance<F, T>(vault: Arc<Vault>, instance_id: InstanceId, f: F) -> Option<T>

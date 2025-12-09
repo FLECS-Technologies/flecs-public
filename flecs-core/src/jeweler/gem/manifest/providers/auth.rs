@@ -1,7 +1,6 @@
+use crate::sorcerer::providius::ReplacementUrlParts;
 #[cfg(feature = "auth")]
 use crate::wall::watch;
-#[cfg(feature = "auth")]
-use axum::extract::Host;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "auth")]
 use std::net::IpAddr;
@@ -188,6 +187,13 @@ pub struct AuthProvider {
     pub properties: serde_json::Value,
 }
 
+fn replace_url_parts(url: &mut Url, replacement: &ReplacementUrlParts, path: &str) {
+    let _ = url.set_host(Some(&replacement.host));
+    let _ = url.set_port(Some(replacement.port));
+    let _ = url.set_scheme(&replacement.protocol);
+    url.set_path(&format!("{path}{}", url.path()));
+}
+
 impl AuthProvider {
     #[cfg(feature = "auth")]
     pub fn build_meta(&self, ip: IpAddr, port: u16) -> Option<watch::AuthProviderMetaData> {
@@ -208,21 +214,17 @@ impl AuthProvider {
         })
     }
     #[cfg(feature = "auth")]
-    pub fn replace_host_and_port(&mut self, host: &Host, port: u16) {
-        let _ = self.issuer_url.set_host(Some(&host.0));
-        let _ = self.issuer_url.set_port(Some(port));
+    pub fn replace_url_parts(&mut self, replacement: &ReplacementUrlParts, path: &str) {
+        replace_url_parts(&mut self.issuer_url, replacement, path);
         if let AuthProviderConfig::Oauth {
             jwk_url,
             token_url,
             authorize_url,
         } = &mut self.config
         {
-            let _ = jwk_url.set_host(Some(&host.0));
-            let _ = jwk_url.set_port(Some(port));
-            let _ = token_url.set_host(Some(&host.0));
-            let _ = token_url.set_port(Some(port));
-            let _ = authorize_url.set_host(Some(&host.0));
-            let _ = authorize_url.set_port(Some(port));
+            replace_url_parts(jwk_url, replacement, path);
+            replace_url_parts(token_url, replacement, path);
+            replace_url_parts(authorize_url, replacement, path);
         }
     }
 }
