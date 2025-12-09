@@ -6,6 +6,7 @@ pub mod id;
 use crate::fsm::server_impl::api::v2::models;
 use crate::fsm::server_impl::api::v2::models::AdditionalInfo;
 use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
+use crate::sorcerer::providius::{ForwardedHeaders, ReplacementUrlParts};
 use axum::Json;
 use axum::extract::{Host, State};
 use axum::response::{IntoResponse, Response};
@@ -25,9 +26,13 @@ pub async fn get(
     State(VaultState(vault)): State<VaultState>,
     State(ProvidiusState(providius)): State<ProvidiusState>,
     host: Host,
+    forwarded: ForwardedHeaders,
 ) -> Response {
     let providers: models::AuthProvidersAndDefaults = providius
-        .get_auth_providers_and_default(vault, &host)
+        .get_auth_providers_and_default(
+            vault,
+            &ReplacementUrlParts::from_forwarded_and_host(forwarded, host),
+        )
         .await
         .into();
     (StatusCode::OK, Json(providers)).into_response()

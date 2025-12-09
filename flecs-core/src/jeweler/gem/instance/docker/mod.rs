@@ -6,7 +6,7 @@ use crate::forge::time::SystemTimeExt;
 use crate::jeweler::deployment::DeploymentId;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::deployment::docker::DockerDeployment;
-use crate::jeweler::gem::instance::docker::config::{InstancePortMapping, ProviderConfig};
+use crate::jeweler::gem::instance::docker::config::InstancePortMapping;
 use crate::jeweler::gem::instance::status::InstanceStatus;
 use crate::jeweler::gem::manifest::single::{
     AppManifestSingle, BindMount, ConfigFile, Mount, VolumeMount,
@@ -476,7 +476,6 @@ impl DockerInstance {
         deployment: Arc<dyn DockerDeployment>,
         manifest: Arc<AppManifestSingle>,
         name: String,
-        provider_config: ProviderConfig,
     ) -> anyhow::Result<Self> {
         let instance_id = InstanceId::new_random();
         let tcp_port_mapping = manifest.ports.clone();
@@ -537,7 +536,6 @@ impl DockerInstance {
             mapped_editor_ports: Default::default(),
             editor_path_prefixes: manifest.default_editor_path_prefixes(),
             dependencies: HashMap::default(),
-            providers: provider_config,
         };
         Ok(Self {
             hostname: format!("flecs-{instance_id}"),
@@ -570,7 +568,6 @@ impl DockerInstance {
             .await?;
         self.load_reverse_proxy_config(floxy.clone()).await?;
         self.load_additional_locations_reverse_proxy_config(floxy.clone())?;
-        self.load_auth_provider_proxy_config(floxy).await?;
         Ok(())
     }
 
@@ -590,7 +587,13 @@ impl DockerInstance {
 
     pub async fn load_reverse_proxy_config(&self, floxy: Arc<dyn Floxy>) -> anyhow::Result<()> {
         let editor_ports = self.get_reverse_proxy_editor_ports();
-        if !editor_ports.is_empty() {
+        let auth_provider_port = self
+            .manifest
+            .specific_providers
+            .auth
+            .as_ref()
+            .map(|provider| provider.port);
+        if !editor_ports.is_empty() || auth_provider_port.is_some() {
             if let Some(instance_ip) = self.get_default_network_address().await? {
                 floxy.add_instance_reverse_proxy_config(
                     self.lore.clone(),
@@ -598,28 +601,8 @@ impl DockerInstance {
                     self.id,
                     instance_ip,
                     &editor_ports,
+                    auth_provider_port,
                 )?;
-            }
-        }
-        Ok(())
-    }
-
-    pub async fn load_auth_provider_proxy_config(
-        &self,
-        floxy: Arc<dyn Floxy>,
-    ) -> anyhow::Result<()> {
-        if let Some(auth_provider) = &self.manifest.specific_providers.auth {
-            if let Some(instance_ip) = self.get_default_network_address().await? {
-                if let Some(auth_config) = &self.config.providers.auth {
-                    floxy.add_instance_redirect(
-                        self.lore.clone(),
-                        &self.app_key().name,
-                        self.id,
-                        instance_ip,
-                        auth_config.port,
-                        auth_provider.port,
-                    )?;
-                }
             }
         }
         Ok(())
@@ -1496,7 +1479,6 @@ pub mod tests {
                 ]),
                 mapped_editor_ports: Default::default(),
                 dependencies: HashMap::default(),
-                providers: Default::default(),
             },
             deployment,
             manifest,
@@ -1958,7 +1940,6 @@ pub mod tests {
             deployment,
             manifest.clone(),
             "TestInstance".to_string(),
-            ProviderConfig::default(),
         )
         .await
         .unwrap();
@@ -1998,7 +1979,6 @@ pub mod tests {
                 deployment,
                 manifest.clone(),
                 "TestInstance".to_string(),
-                ProviderConfig::default(),
             )
             .await
             .is_err()
@@ -2040,13 +2020,13 @@ pub mod tests {
                     name: "Editor#1".to_string(),
                     port: 123,
                     path_prefix: None,
-                    url: "/v2/instances/00000123/editor/123".to_string(),
+                    url: "/flecs/instances/00000123/editor/123".to_string(),
                 },
                 models::InstanceEditor {
                     name: "Editor#2".to_string(),
                     port: 789,
                     path_prefix: None,
-                    url: "/v2/instances/00000123/editor/789".to_string(),
+                    url: "/flecs/instances/00000123/editor/789".to_string(),
                 },
             ])),
         };
@@ -2160,13 +2140,13 @@ pub mod tests {
                     name: "Editor#1".to_string(),
                     port: 123,
                     path_prefix: None,
-                    url: "/v2/instances/00000123/editor/123".to_string(),
+                    url: "/flecs/instances/00000123/editor/123".to_string(),
                 },
                 models::InstanceEditor {
                     name: "Editor#2".to_string(),
                     port: 789,
                     path_prefix: None,
-                    url: "/v2/instances/00000123/editor/789".to_string(),
+                    url: "/flecs/instances/00000123/editor/789".to_string(),
                 },
             ])),
         };
@@ -2613,13 +2593,13 @@ pub mod tests {
         floxy
             .expect_add_instance_reverse_proxy_config()
             .once()
-            .withf(|_, app, id, ip, ports| {
+            .withf(|_, app, id, ip, ports, _| {
                 app == "some.test.app"
                     && id == &InstanceId::new(2)
                     && ip == &IpAddr::V4(Ipv4Addr::new(125, 20, 20, 20))
                     && ports == [789]
             })
-            .returning(|_, _, _, _, _| Ok(()));
+            .returning(|_, _, _, _, _, _| Ok(()));
         let floxy = Arc::new(floxy);
         let instance = test_instance(
             2,

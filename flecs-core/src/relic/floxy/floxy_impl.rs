@@ -20,9 +20,14 @@ impl Floxy for FloxyImpl {
         instance_id: InstanceId,
         instance_ip: IpAddr,
         dest_ports: &[u16],
+        auth_provider_port: Option<u16>,
     ) -> anyhow::Result<()> {
-        let config_content =
-            Self::create_instance_reverse_proxy_config(instance_id, instance_ip, dest_ports.iter());
+        let config_content = Self::create_instance_reverse_proxy_config(
+            instance_id,
+            instance_ip,
+            dest_ports.iter(),
+            auth_provider_port,
+        );
         let config_path = Self::build_instance_config_path(&lore, app_name, instance_id);
         Self::add_reverse_proxy_config(lore, &config_content, &config_path)?;
         debug!("Added reverse proxy config for instance {instance_id} at {config_path:?}");
@@ -197,6 +202,7 @@ impl FloxyImpl {
         instance_id: InstanceId,
         instance_ip: IpAddr,
         dest_ports: I,
+        auth_provider_port: Option<u16>,
     ) -> String {
         dest_ports
             .map(|port| {
@@ -206,6 +212,13 @@ impl FloxyImpl {
                     &FloxyLore::instance_editor_location(instance_id, *port),
                 )
             })
+            .chain(auth_provider_port.map(|auth_provider_port| {
+                Self::create_instance_config(
+                    instance_ip,
+                    auth_provider_port,
+                    &FloxyLore::auth_provider_location(instance_id),
+                )
+            }))
             .collect::<String>()
     }
 
@@ -301,28 +314,14 @@ impl FloxyImpl {
     fn create_instance_config(instance_ip: IpAddr, dest_port: u16, location: &str) -> String {
         format!(
             "
-location {location} {{
-  server_name_in_redirect on;
-  return 307 $request_uri/;
+location {location}/ {{
+  proxy_pass http://{instance_ip}:{dest_port}/;
+  proxy_redirect / {location}/;
 
-  location ~ ^{location}/(.*) {{
-    set $upstream http://{instance_ip}:{dest_port}/$1$is_args$args;
-    proxy_pass $upstream;
+  include conf.d/include/proxy_headers.conf;
 
-    proxy_http_version 1.1;
-
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Port $server_port;
-
-    client_max_body_size 0;
-    client_body_timeout 30m;
-  }}
+  client_max_body_size 0;
+  client_body_timeout 30m;
 }}"
         )
     }
@@ -347,19 +346,9 @@ location ~ ^{additional_location}/(.*) {{
 server {{
   listen {host_port};
   location / {{
-    set $upstream http://{instance_ip}:{dest_port};
-    proxy_pass $upstream;
+    proxy_pass http://{instance_ip}:{dest_port}/;
 
-    proxy_http_version 1.1;
-
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Port $server_port;
+    include conf.d/include/proxy_headers.conf;
 
     client_max_body_size 0;
     client_body_timeout 30m;
@@ -408,74 +397,32 @@ mod tests {
     }
 
     const EXPECTED_TRIPLE_CONFIG: &str = "
-location /v2/instances/1234abcd/editor/5000 {
-  server_name_in_redirect on;
-  return 307 $request_uri/;
+location /flecs/instances/1234abcd/editor/5000/ {
+  proxy_pass http://123.123.234.234:5000/;
+  proxy_redirect / /flecs/instances/1234abcd/editor/5000/;
 
-  location ~ ^/v2/instances/1234abcd/editor/5000/(.*) {
-    set $upstream http://123.123.234.234:5000/$1$is_args$args;
-    proxy_pass $upstream;
+  include conf.d/include/proxy_headers.conf;
 
-    proxy_http_version 1.1;
-
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Port $server_port;
-
-    client_max_body_size 0;
-    client_body_timeout 30m;
-  }
+  client_max_body_size 0;
+  client_body_timeout 30m;
 }
-location /v2/instances/1234abcd/editor/6000 {
-  server_name_in_redirect on;
-  return 307 $request_uri/;
+location /flecs/instances/1234abcd/editor/6000/ {
+  proxy_pass http://123.123.234.234:6000/;
+  proxy_redirect / /flecs/instances/1234abcd/editor/6000/;
 
-  location ~ ^/v2/instances/1234abcd/editor/6000/(.*) {
-    set $upstream http://123.123.234.234:6000/$1$is_args$args;
-    proxy_pass $upstream;
+  include conf.d/include/proxy_headers.conf;
 
-    proxy_http_version 1.1;
-
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Port $server_port;
-
-    client_max_body_size 0;
-    client_body_timeout 30m;
-  }
+  client_max_body_size 0;
+  client_body_timeout 30m;
 }
-location /v2/instances/1234abcd/editor/7000 {
-  server_name_in_redirect on;
-  return 307 $request_uri/;
+location /flecs/instances/1234abcd/editor/7000/ {
+  proxy_pass http://123.123.234.234:7000/;
+  proxy_redirect / /flecs/instances/1234abcd/editor/7000/;
 
-  location ~ ^/v2/instances/1234abcd/editor/7000/(.*) {
-    set $upstream http://123.123.234.234:7000/$1$is_args$args;
-    proxy_pass $upstream;
+  include conf.d/include/proxy_headers.conf;
 
-    proxy_http_version 1.1;
-
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Port $server_port;
-
-    client_max_body_size 0;
-    client_body_timeout 30m;
-  }
+  client_max_body_size 0;
+  client_body_timeout 30m;
 }";
 
     const TRIPLE_DEST_PORTS: [u16; 3] = [5000, 6000, 7000];
@@ -486,6 +433,7 @@ location /v2/instances/1234abcd/editor/7000 {
             InstanceId::new(0x1234abcd),
             IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
             TRIPLE_DEST_PORTS.iter(),
+            None,
         );
         assert_eq!(config, EXPECTED_TRIPLE_CONFIG);
     }
@@ -504,6 +452,7 @@ location /v2/instances/1234abcd/editor/7000 {
                 InstanceId::new(0x1234abcd),
                 IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
                 &TRIPLE_DEST_PORTS,
+                None
             ),
             Ok(())
         ));
@@ -529,6 +478,7 @@ location /v2/instances/1234abcd/editor/7000 {
                 InstanceId::new(0x1234abcd),
                 IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
                 &TRIPLE_DEST_PORTS,
+                None
             ),
             Ok(())
         ));
@@ -554,6 +504,7 @@ location /v2/instances/1234abcd/editor/7000 {
                 InstanceId::new(0x1234abcd),
                 IpAddr::V4(Ipv4Addr::new(123, 123, 234, 234)),
                 &TRIPLE_DEST_PORTS,
+                None
             ),
             Ok(())
         ));
@@ -569,19 +520,9 @@ location /v2/instances/1234abcd/editor/7000 {
 server {
   listen 5050;
   location / {
-    set $upstream http://123.123.234.234:9090;
-    proxy_pass $upstream;
+    proxy_pass http://123.123.234.234:9090/;
 
-    proxy_http_version 1.1;
-
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Port $server_port;
+    include conf.d/include/proxy_headers.conf;
 
     client_max_body_size 0;
     client_body_timeout 30m;
@@ -600,28 +541,14 @@ server {
     #[test]
     fn create_instance_config_test() {
         const EXPECTED_CONFIG: &str = "
-location TEST_LOCATION {
-  server_name_in_redirect on;
-  return 307 $request_uri/;
+location TEST_LOCATION/ {
+  proxy_pass http://30.60.120.240:7799/;
+  proxy_redirect / TEST_LOCATION/;
 
-  location ~ ^TEST_LOCATION/(.*) {
-    set $upstream http://30.60.120.240:7799/$1$is_args$args;
-    proxy_pass $upstream;
+  include conf.d/include/proxy_headers.conf;
 
-    proxy_http_version 1.1;
-
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Port $server_port;
-
-    client_max_body_size 0;
-    client_body_timeout 30m;
-  }
+  client_max_body_size 0;
+  client_body_timeout 30m;
 }";
         assert_eq!(
             FloxyImpl::create_instance_config(
@@ -961,19 +888,9 @@ location TEST_LOCATION {
 server {{
   listen {port};
   location / {{
-    set $upstream http://123.123.123.123:50000;
-    proxy_pass $upstream;
+    proxy_pass http://123.123.123.123:50000/;
 
-    proxy_http_version 1.1;
-
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection $connection_upgrade;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Host $host;
-    proxy_set_header X-Forwarded-Port $server_port;
+    include conf.d/include/proxy_headers.conf;
 
     client_max_body_size 0;
     client_body_timeout 30m;

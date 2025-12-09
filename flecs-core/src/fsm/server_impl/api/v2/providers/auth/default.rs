@@ -2,7 +2,9 @@ use crate::fsm::server_impl::api::v2::models::{AdditionalInfo, PutDefaultProvide
 use crate::fsm::server_impl::state::{ProvidiusState, VaultState};
 use crate::jeweler::gem::manifest::FeatureKey;
 use crate::jeweler::gem::manifest::providers::auth::AuthProvider;
-use crate::sorcerer::providius::{DeleteDefaultProviderError, SetDefaultProviderError};
+use crate::sorcerer::providius::{
+    DeleteDefaultProviderError, ForwardedHeaders, ReplacementUrlParts, SetDefaultProviderError,
+};
 use axum::Json;
 use axum::extract::{Host, State};
 use axum::response::{IntoResponse, Response};
@@ -47,8 +49,14 @@ pub async fn get(
     State(VaultState(vault)): State<VaultState>,
     State(ProvidiusState(providius)): State<ProvidiusState>,
     host: Host,
+    forwarded: ForwardedHeaders,
 ) -> Response {
-    let mut providers = providius.get_auth_providers_and_default(vault, &host).await;
+    let mut providers = providius
+        .get_auth_providers_and_default(
+            vault,
+            &ReplacementUrlParts::from_forwarded_and_host(forwarded, host),
+        )
+        .await;
     match providers.default {
         Some(provider_id) => match providers.providers.remove(&provider_id) {
             Some(provider) => (StatusCode::OK, Json(provider)).into_response(),
