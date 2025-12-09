@@ -55,7 +55,7 @@ pub enum PutInstanceUsbDeviceResult {
 pub enum RedirectEditorRequestResult {
     InstanceNotFound,
     UnknownPort,
-    EditorSupportsReverseProxy,
+    EditorSupportsReverseProxy(String),
     InstanceNotRunning,
     InstanceNotConnectedToNetwork,
     Redirected(u16),

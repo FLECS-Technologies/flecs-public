@@ -35,9 +35,7 @@ pub async fn get<I: Instancius>(
         Ok(UnknownPort) => Ok(GetResponse::Status404_InstanceIdOrPortNotFound(
             models::AdditionalInfo::new(format!("Unknown port {port}")),
         )),
-        Ok(EditorSupportsReverseProxy) => Ok(GetResponse::Status400_MalformedRequest(
-            models::AdditionalInfo::new("Editor supports reverse proxy -> use floxy".to_string()),
-        )),
+        Ok(EditorSupportsReverseProxy(location)) => Ok(GetResponse::Status302_Found { location }),
         Ok(InstanceNotRunning) => Ok(GetResponse::Status400_MalformedRequest(
             models::AdditionalInfo::new(format!("Instance {instance_id} not running")),
         )),
@@ -153,13 +151,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_400_reverse_proxy_support() {
+    async fn get_302_reverse_proxy_support() {
         let mut instancius = MockInstancius::new();
         instancius
             .expect_redirect_editor_request()
             .withf(|_, _, _, id, port| id.value == 6 && port.get() == 5678)
             .once()
-            .returning(|_, _, _, _, _| Ok(EditorSupportsReverseProxy));
+            .returning(|_, _, _, _, _| Ok(EditorSupportsReverseProxy("test_url".to_string())));
         let result = get(
             crate::vault::tests::create_empty_test_vault(),
             Arc::new(MockFloxy::new()),
@@ -171,7 +169,7 @@ mod tests {
         )
         .await;
         assert!(
-            matches!(result, Ok(GetResponse::Status400_MalformedRequest(_))),
+            matches!(result, Ok(GetResponse::Status302_Found{ref location}) if location == "test_url"),
             "{:#?}",
             result
         );
