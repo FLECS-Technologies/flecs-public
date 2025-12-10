@@ -273,7 +273,10 @@ impl Lore {
                     bind_address: None,
                 },
             })
-            .unwrap_or_else(|| Listener::UnixSocket(PathBuf::from(default::FLECSD_SOCKET_PATH)));
+            .unwrap_or_else(|| Listener::TCP {
+                port: default::FLECSD_PORT,
+                bind_address: None,
+            });
         Ok(Self {
             export: ExportLore::from_conf_with_defaults(
                 conf.export.unwrap_or_default(),
@@ -601,11 +604,14 @@ mod tests {
     }
 
     #[test]
-    fn from_conf_socket_path_default() {
+    fn from_conf_listener_default() {
         let conf = conf::FlecsConfig::default();
         assert!(matches!(
             Lore::from_conf_with_defaults(conf).unwrap().listener,
-            Listener::UnixSocket(socket_path) if socket_path == PathBuf::from(default::FLECSD_SOCKET_PATH)
+            Listener::TCP {
+                port: default::FLECSD_PORT,
+                bind_address: None
+            }
         ));
     }
 
