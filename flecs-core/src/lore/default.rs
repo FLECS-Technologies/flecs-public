@@ -26,7 +26,7 @@ pub mod export {
 }
 
 pub mod floxy {
-    pub const BASE_DIRECTORY: &str = "/tmp/floxy";
+    pub const BASE_DIRECTORY: &str = "/tmp/floxy/conf.d";
     pub const SERVER_CONFIGS_DIR_NAME: &str = "servers";
     pub const INSTANCE_CONFIGS_DIR_NAME: &str = "instances";
 }

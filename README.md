@@ -150,9 +150,9 @@ timeout = 9223372036854775807
 
 [floxy]
 # The base directory for floxy, e.g. where instance reverse proxy configs are stored.
-# Default: "/tmp/floxy"
+# Default: "/tmp/floxy/conf.d"
 # Environment variable: FLECS_CORE_FLOXY_BASE_PATH
-base_path = "/tmp/floxy"
+base_path = "/tmp/floxy/conf.d"
 
 [console]
 # The console uri the core connects to.
