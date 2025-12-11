@@ -104,26 +104,6 @@ tracing_filter = "info,tower_http=debug,axum::rejection=debug"
 # Environment variable: FLECS_CORE_BASE_PATH
 base_path = "/var/lib/flecs/"
 
-## The location flecsd listens on
-## To open a tcp port use
-# [listener.TCP]
-## To specify the port use
-# port = 8951
-## Environment variable: FLECS_CORE_PORT
-## Default: 8951
-## To specify the bind address use
-# bind_address = "::"
-## Environment variable: FLECS_CORE_BIND_ADDRESS
-## Default "::" with fallback "0.0.0.0" if Ipv6 is not available
-[listener.TCP]
-port = 8951
-
-## To listen on a unix socket use
-#[listener.UnixSocket]
-# socket_path = "/run/flecs/flecsd.sock"
-## Environment variable FLECS_CORE_SOCKET_PATH
-## Note that FLECS_CORE_PORT and FLECS_CORE_BIND_ADDRESS take precedence over FLECS_CORE_SOCKET_PATH
-
 [export]
 # The base directory for exports, i.e. where exports are created and stored. If this is not set it will be derived from
 # the general flecsd base_path.
