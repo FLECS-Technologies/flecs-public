@@ -48,6 +48,7 @@ create_container() {
 
 remove_container() {
   docker rm -f ${CONTAINER} >/dev/null 2>&1
+  docker rm -f flecs-floxy >/dev/null 2>&1
 }
 
 case ${1} in
