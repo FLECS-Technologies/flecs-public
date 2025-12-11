@@ -1229,6 +1229,8 @@ impl Instancius for InstanciusImpl {
             .config
             .mapped_editor_ports
             .insert(port.get(), host_port);
+        // Give floxy a chance to reload and @TODO find something better
+        std::thread::sleep(std::time::Duration::from_millis(250));
         Ok(RedirectEditorRequestResult::Redirected(host_port))
     }
 
