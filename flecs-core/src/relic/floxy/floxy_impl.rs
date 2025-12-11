@@ -232,7 +232,13 @@ impl FloxyImpl {
         additional_locations
             .map(|additional_location| {
                 Self::create_location_config(
-                    &FloxyLore::instance_editor_location(instance_id, additional_location.port),
+                    &format!(
+                        "/api/{}",
+                        &FloxyLore::instance_editor_api_location(
+                            instance_id,
+                            additional_location.port
+                        )
+                    ),
                     &additional_location.location,
                 )
             })
