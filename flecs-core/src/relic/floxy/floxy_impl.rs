@@ -336,11 +336,9 @@ location {location}/ {{
         format!(
             "
 location {additional_location} {{
-  server_name_in_redirect on;
   return 307 {location};
 }}
 location ~ ^{additional_location}/(.*) {{
-  server_name_in_redirect on;
   return 307 {location}/$1;
 }}"
         )
