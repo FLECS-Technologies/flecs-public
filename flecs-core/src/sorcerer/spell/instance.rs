@@ -1228,6 +1228,14 @@ pub mod tests {
                         Ok(InstanceStatus::Stopped)
                     }
                 });
+            deployment
+                .expect_instance_default_address()
+                .with(predicate::always(), predicate::eq(InstanceId::new(7)))
+                .returning(|_, _| Ok(Some(IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)))));
+            deployment
+                .expect_instance_default_address()
+                .with(predicate::always(), predicate::eq(InstanceId::new(8)))
+                .returning(|_, _| Ok(Some(IpAddr::V4(Ipv4Addr::new(123, 123, 123, 123)))));
             if !RUNNING_INSTANCES.contains(&instance_id) {
                 deployment
                     .expect_start_instance()
@@ -1248,6 +1256,10 @@ pub mod tests {
         floxy
             .expect_delete_additional_locations_proxy_config()
             .returning(|_, _, _| Ok(()));
+        floxy
+            .expect_add_instance_reverse_proxy_config()
+            .times(2)
+            .returning(|_, _, _, _, _, _| Ok(()));
         let floxy = Arc::new(floxy);
         start_all_instances_as_desired(Quest::new_synced("TestQuest".to_string()), vault, floxy)
             .await

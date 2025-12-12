@@ -261,7 +261,12 @@ mod tests {
             (*instance_id, deployment)
         }));
         let vault = create_test_vault(deployments, HashMap::new(), None);
-        let floxy = Arc::new(MockFloxy::new());
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .times(3) // 3 out of 4 instances are running
+            .returning(|_, _, _| Ok(()));
+        let floxy = Arc::new(floxy);
         export_instances(
             Quest::new_synced("TestQuest"),
             vault,
@@ -324,7 +329,12 @@ mod tests {
             HashMap::new(),
             None,
         );
-        let floxy = Arc::new(MockFloxy::new());
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .once()
+            .returning(|_, _, _| Ok(()));
+        let floxy = Arc::new(floxy);
         export_instance(
             Quest::new_synced("TestQuest"),
             vault,
