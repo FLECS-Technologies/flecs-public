@@ -555,7 +555,12 @@ impl DockerInstance {
     }
 
     pub async fn resume(&self, floxy: Arc<dyn Floxy>) -> anyhow::Result<()> {
-        if self.desired != InstanceStatus::Running || self.is_running().await? {
+        if self.desired != InstanceStatus::Running {
+            return Ok(());
+        }
+        if self.is_running().await? {
+            self.load_reverse_proxy_config(floxy.clone()).await?;
+            self.load_additional_locations_reverse_proxy_config(floxy.clone())?;
             return Ok(());
         }
         self.deployment
@@ -2533,7 +2538,11 @@ pub mod tests {
     #[tokio::test]
     async fn instance_start_ok_already_running() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
-        let floxy = Arc::new(MockFloxy::new());
+        let mut floxy = MockFloxy::new();
+        floxy
+            .expect_delete_additional_locations_proxy_config()
+            .returning(|_, _, _| Ok(()));
+        let floxy = Arc::new(floxy);
         let mut deployment = MockedDockerDeployment::new();
         deployment
             .expect_instance_status()
