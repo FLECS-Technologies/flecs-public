@@ -112,6 +112,7 @@ start_floxy() {
 
   docker rm -f ${FLOXY_CONTAINER_NAME}
   echo "Binding ${FLOXY_CONTAINER_NAME} to port ${HTTP_PORT}/http and ${HTTPS_PORT}/https"
+  docker pull "${FLOXY_IMAGE}" || true
   docker create \
         --name ${FLOXY_CONTAINER_NAME} \
         --network host \
