@@ -8,6 +8,7 @@ case $1 in
   configure|abort-remove)
     systemctl preset flecs
     systemctl is-enabled flecs >/dev/null && systemctl start flecs
+    systemctl is-enabled flecs-webapp >/dev/null 2>&1 && systemctl start flecs-webapp
     ;;
 esac
 
