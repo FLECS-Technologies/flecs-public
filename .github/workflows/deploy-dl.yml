@@ -48,7 +48,7 @@ jobs:
             echo "No latest files found. Quitting..." 1>&2; \
             exit 1; \
           fi
-          for package in `find deploy/ \( -name "*.deb" -o -name "*.tgz" \)`; do \
+          for package in `find deploy/ -name "*.deb"`; do \
             BASE_FILE=$(basename "${package}"); \
             PACKAGES="${PACKAGES} ${BASE_FILE}"; \
             echo "Uploading ${BASE_FILE}"; \

@@ -16,10 +16,9 @@
 
 cmake_minimum_required(VERSION 3.25)
 
-set(CPACK_GENERATOR DEB TGZ)
+set(CPACK_GENERATOR DEB)
 
 set(CPACK_DEB_COMPONENT_INSTALL 1)
-set(CPACK_ARCHIVE_COMPONENT_INSTALL 1)
 
 set(CPACK_PACKAGE_NAME "flecs")
 set(CPACK_PACKAGE_VERSION "${FLECS_VERSION_FULL}")
@@ -29,8 +28,6 @@ set(CPACK_PACKAGE_CONTACT "FLECS Technologies GmbH <info@flecs.tech>")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "FLECS is the ultimate open marketplace for industrial automation")
 set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/local")
 
-set(CPACK_ARCHIVE_FLECS-TAR-PKG_FILE_NAME ${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CPACK_PACKAGE_ARCHITECTURE})
-set(CPACK_ARCHIVE_FILE_EXTENSION "tgz")
 set(CPACK_DEBIAN_FLECS-DEB-PKG_PACKAGE_NAME ${CPACK_PACKAGE_NAME})
 
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
@@ -72,19 +69,6 @@ endfunction()
 # Install .deb package contents
 install_common_files(flecs-deb-pkg)
 
-# Install .tar.gz package contents
-install_common_files(flecs-tar-pkg)
-install(PROGRAMS fs/etc/init.d/flecs
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/init.d/
-    COMPONENT flecs-tar-pkg
-    EXCLUDE_FROM_ALL
-)
-install(FILES fs/etc/flecs/docker-compose.yml
-    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/flecs/
-    COMPONENT flecs-tar-pkg
-    EXCLUDE_FROM_ALL
-)
-
-set(CPACK_COMPONENTS_ALL "flecs-deb-pkg" "flecs-tar-pkg")
+set(CPACK_COMPONENTS_ALL "flecs-deb-pkg")
 
 include(CPack)
