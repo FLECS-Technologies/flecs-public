@@ -1,0 +1,15 @@
+#!/bin/bash
+
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+case $1 in
+  upgrade)
+    docker rm -f flecs-flecsd
+    echo "Shutting down flecs-webapp.service"
+    systemctl stop flecs-webapp.service
+    ;;
+  *)
+    ;;
+esac
+
+exit 0

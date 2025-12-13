@@ -9,9 +9,6 @@ case $1 in
     # TODO implement graceful detach in flecsd
     echo "Detaching flecs.service"
     systemctl kill --signal=KILL flecs
-    docker rm -f flecs-flecsd
-    echo "Shutting down flecs-webapp.service"
-    systemctl stop flecs-webapp.service
     ;;
   remove)
     echo "Disabling flecs.service"
