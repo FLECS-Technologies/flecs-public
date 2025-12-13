@@ -8,6 +8,9 @@ case $1 in
   failed-upgrade)
     ;;
   upgrade)
+    if dpkg --compare-versions "$2" lt "5.0.0-red-deer"; then
+      docker run --rm -v flecsd:/flecs alpine:latest mv /flecs/providers/providers.json /flecs/providers/providers.json.pre-downgrade
+    fi
     ;;
   purge)
     rm -rf /var/lib/flecs
