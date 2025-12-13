@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/local/sbin:/usr/local/bin
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 FLOXY_CONTAINER_NAME=flecs-floxy
 # TODO: Change tag to latest before release
 FLOXY_IMAGE=flecspublic.azurecr.io/flecs/floxy:dev-debug
