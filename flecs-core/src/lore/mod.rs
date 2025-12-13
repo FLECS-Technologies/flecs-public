@@ -319,10 +319,16 @@ impl ImportLore {
 }
 
 impl FloxyLore {
+    #[cfg(test)]
     pub fn from_conf_with_defaults(conf: conf::FloxyConfig) -> Self {
         let base_path = conf
             .base_path
             .unwrap_or_else(|| PathBuf::from(default::floxy::BASE_DIRECTORY));
+        Self { base_path }
+    }
+    #[cfg(not(test))]
+    pub fn from_conf_with_defaults(_conf: conf::FloxyConfig) -> Self {
+        let base_path = PathBuf::from(default::floxy::BASE_DIRECTORY);
         Self { base_path }
     }
 
