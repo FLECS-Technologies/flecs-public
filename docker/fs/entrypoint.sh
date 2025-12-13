@@ -16,7 +16,7 @@
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 FLOXY_CONTAINER_NAME=flecs-floxy
 # TODO: Change tag to latest before release
-FLOXY_IMAGE=flecspublic.azurecr.io/flecs/floxy:dev-debug
+FLOXY_IMAGE=flecspublic.azurecr.io/flecs/floxy:0
 
 create_network() {
   NETWORK=flecs
