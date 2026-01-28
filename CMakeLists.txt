@@ -67,6 +67,5 @@ add_custom_target(version
 )
 
 add_subdirectory(docker)
-add_subdirectory(pkg)
 
 include(flecs-rules)

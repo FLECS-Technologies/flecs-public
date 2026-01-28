@@ -41,7 +41,7 @@ function(stage_docker_fs)
         COMPONENT docker
         EXCLUDE_FROM_ALL
     )
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/pkg/fs/usr/share/flecs/auth/
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/docker/fs/usr/share/flecs/auth/
         DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs/usr/local/share/flecs/auth
         COMPONENT docker
         EXCLUDE_FROM_ALL

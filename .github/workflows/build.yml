@@ -50,10 +50,6 @@ jobs:
           cmake --install build/${{ inputs.arch }} --component docker
           cmake --build build/${{ inputs.arch }} --target docker
 
-      - name: "CMake: Package"
-        run: |
-          cmake --build build/${{ inputs.arch }} --target package
-
       - name: "CMake: Latest"
         run: |
           cmake --build build/${{ inputs.arch }} --target version -- --quiet >build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
@@ -71,6 +67,5 @@ jobs:
         with:
           name: packages_${{ inputs.arch }}
           path: |
-            build/${{ inputs.arch }}/flecs_*_${{ inputs.arch }}.deb
             build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
           retention-days: 1
