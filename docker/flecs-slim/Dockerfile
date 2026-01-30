@@ -51,4 +51,4 @@ FROM flecs
 
 COPY --from=syft /sbom /usr/local/lib/flecs/sbom
 
-ENTRYPOINT [ "/entrypoint.sh" ]
+ENTRYPOINT [ "/usr/local/bin/flecsd" ]
