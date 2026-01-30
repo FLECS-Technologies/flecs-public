@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-install(PROGRAMS fs/special_entrypoint.sh
+install(PROGRAMS fs/entrypoint.sh
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/fs
     COMPONENT docker
     EXCLUDE_FROM_ALL
