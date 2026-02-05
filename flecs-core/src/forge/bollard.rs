@@ -1,20 +1,21 @@
 use crate::Result;
 use crate::jeweler::network::NetworkKind;
-use crate::relic::network::{Ipv4Network, Ipv6Network, Network};
+use ipnet::IpNet;
+use ipnet::{Ipv4Net, Ipv6Net};
 use std::net::{IpAddr, Ipv4Addr};
 use std::str::FromStr;
 
 const PARENT_IDENTIFIER: &str = "parent";
 
 pub trait BollardNetworkExtension {
-    fn subnet(&self) -> Option<Result<Network>>;
-    fn subnet_ipv4(&self) -> Result<Option<Ipv4Network>>;
-    fn subnet_ipv6(&self) -> Result<Option<Ipv6Network>>;
-    fn subnets(&self) -> Result<Vec<Network>>;
-    fn subnets_and_gateways(&self) -> Result<Vec<(Network, Option<IpAddr>)>>;
-    fn subnets_and_gateways_ipv4(&self) -> Result<Vec<(Ipv4Network, Option<Ipv4Addr>)>>;
-    fn subnets_ipv4(&self) -> Result<Vec<Ipv4Network>>;
-    fn subnets_ipv6(&self) -> Result<Vec<Ipv6Network>>;
+    fn subnet(&self) -> Option<Result<IpNet>>;
+    fn subnet_ipv4(&self) -> Result<Option<Ipv4Net>>;
+    fn subnet_ipv6(&self) -> Result<Option<Ipv6Net>>;
+    fn subnets(&self) -> Result<Vec<IpNet>>;
+    fn subnets_and_gateways(&self) -> Result<Vec<(IpNet, Option<IpAddr>)>>;
+    fn subnets_and_gateways_ipv4(&self) -> Result<Vec<(Ipv4Net, Option<Ipv4Addr>)>>;
+    fn subnets_ipv4(&self) -> Result<Vec<Ipv4Net>>;
+    fn subnets_ipv6(&self) -> Result<Vec<Ipv6Net>>;
     fn gateways(&self) -> Result<Vec<IpAddr>>;
     fn gateways_ipv4(&self) -> Result<Vec<Ipv4Addr>>;
     fn gateway_ipv4(&self) -> Result<Option<Ipv4Addr>>;
@@ -23,7 +24,7 @@ pub trait BollardNetworkExtension {
 }
 
 impl BollardNetworkExtension for bollard::models::Network {
-    fn subnet(&self) -> Option<Result<Network>> {
+    fn subnet(&self) -> Option<Result<IpNet>> {
         let subnet = self
             .ipam
             .as_ref()?
@@ -32,21 +33,18 @@ impl BollardNetworkExtension for bollard::models::Network {
             .first()?
             .subnet
             .clone()?;
-        match Network::from_str(&subnet) {
-            Ok(network) => Some(Ok(network)),
-            Err(e) => Some(Err(e)),
-        }
+        Some(IpNet::from_str(&subnet).map_err(anyhow::Error::from))
     }
 
-    fn subnet_ipv4(&self) -> Result<Option<Ipv4Network>> {
+    fn subnet_ipv4(&self) -> Result<Option<Ipv4Net>> {
         Ok(self.subnets_ipv4()?.first().copied())
     }
 
-    fn subnet_ipv6(&self) -> Result<Option<Ipv6Network>> {
+    fn subnet_ipv6(&self) -> Result<Option<Ipv6Net>> {
         Ok(self.subnets_ipv6()?.first().copied())
     }
 
-    fn subnets(&self) -> Result<Vec<Network>> {
+    fn subnets(&self) -> Result<Vec<IpNet>> {
         if let Some(bollard::models::Ipam {
             config: Some(configs),
             ..
@@ -55,14 +53,14 @@ impl BollardNetworkExtension for bollard::models::Network {
             configs
                 .iter()
                 .filter_map(|ipam| ipam.subnet.as_deref())
-                .map(Network::from_str)
+                .map(|s| IpNet::from_str(s).map_err(anyhow::Error::from))
                 .collect()
         } else {
             Ok(Vec::new())
         }
     }
 
-    fn subnets_and_gateways(&self) -> Result<Vec<(Network, Option<IpAddr>)>> {
+    fn subnets_and_gateways(&self) -> Result<Vec<(IpNet, Option<IpAddr>)>> {
         if let Some(bollard::models::Ipam {
             config: Some(configs),
             ..
@@ -77,37 +75,35 @@ impl BollardNetworkExtension for bollard::models::Network {
         }
     }
 
-    fn subnets_and_gateways_ipv4(&self) -> Result<Vec<(Ipv4Network, Option<Ipv4Addr>)>> {
+    fn subnets_and_gateways_ipv4(&self) -> Result<Vec<(Ipv4Net, Option<Ipv4Addr>)>> {
         Ok(self
             .subnets_and_gateways()?
             .into_iter()
             .filter_map(|(network, gateway)| match (network, gateway) {
-                (Network::Ipv4(network), None) => Some((network, None)),
-                (Network::Ipv4(network), Some(IpAddr::V4(gateway))) => {
-                    Some((network, Some(gateway)))
-                }
+                (IpNet::V4(network), None) => Some((network, None)),
+                (IpNet::V4(network), Some(IpAddr::V4(gateway))) => Some((network, Some(gateway))),
                 _ => None,
             })
             .collect())
     }
 
-    fn subnets_ipv4(&self) -> Result<Vec<Ipv4Network>> {
+    fn subnets_ipv4(&self) -> Result<Vec<Ipv4Net>> {
         Ok(self
             .subnets()?
             .into_iter()
             .filter_map(|subnet| match subnet {
-                Network::Ipv4(subnet) => Some(subnet),
+                IpNet::V4(subnet) => Some(subnet),
                 _ => None,
             })
             .collect())
     }
 
-    fn subnets_ipv6(&self) -> Result<Vec<Ipv6Network>> {
+    fn subnets_ipv6(&self) -> Result<Vec<Ipv6Net>> {
         Ok(self
             .subnets()?
             .into_iter()
             .filter_map(|subnet| match subnet {
-                Network::Ipv6(subnet) => Some(subnet),
+                IpNet::V6(subnet) => Some(subnet),
                 _ => None,
             })
             .collect())
@@ -165,11 +161,11 @@ impl BollardNetworkExtension for bollard::models::Network {
 
 fn subnet_and_gateway_from_ipam_config(
     ipam: &bollard::models::IpamConfig,
-) -> Result<Option<(Network, Option<IpAddr>)>> {
+) -> Result<Option<(IpNet, Option<IpAddr>)>> {
     match &ipam.subnet {
         None => Ok(None),
         Some(subnet) => Ok(Some((
-            Network::from_str(subnet.as_str())?,
+            IpNet::from_str(subnet.as_str())?,
             ipam.gateway
                 .as_ref()
                 .map(|gateway| IpAddr::from_str(gateway.as_str()))
@@ -181,6 +177,7 @@ fn subnet_and_gateway_from_ipam_config(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ipnet::Ipv4Net;
     use std::collections::HashMap;
 
     #[test]
@@ -288,16 +285,16 @@ mod tests {
         };
         assert_eq!(
             network.subnet().unwrap().unwrap(),
-            Network::from_str("10.27.12.0/24").unwrap()
+            IpNet::from_str("10.27.12.0/24").unwrap()
         );
     }
 
     #[test]
     fn get_subnets_valid() {
-        let network_1 = Network::from_str("10.51.56.128/25").unwrap();
-        let network_2 = Network::from_str("60.0.0.0/8").unwrap();
-        let network_3 = Network::from_str("1234:1234::/32").unwrap();
-        let network_4 = Network::from_str("23.80.0.0/16").unwrap();
+        let network_1 = IpNet::from_str("10.51.56.128/25").unwrap();
+        let network_2 = IpNet::from_str("60.0.0.0/8").unwrap();
+        let network_3 = IpNet::from_str("1234:1234::/32").unwrap();
+        let network_4 = IpNet::from_str("23.80.0.0/16").unwrap();
         let ipam_configs = vec![
             bollard::models::IpamConfig {
                 subnet: Some(network_1.to_string()),
@@ -335,9 +332,9 @@ mod tests {
 
     #[test]
     fn get_subnets_invalid() {
-        let network_1 = Network::from_str("10.51.56.128/25").unwrap();
-        let network_2 = Network::from_str("60.0.0.0/8").unwrap();
-        let network_3 = Network::from_str("23.80.0.0/16").unwrap();
+        let network_1 = IpNet::from_str("10.51.56.128/25").unwrap();
+        let network_2 = IpNet::from_str("60.0.0.0/8").unwrap();
+        let network_3 = IpNet::from_str("23.80.0.0/16").unwrap();
         let ipam_configs = vec![
             bollard::models::IpamConfig {
                 subnet: Some(network_1.to_string()),
@@ -569,10 +566,10 @@ mod tests {
 
     #[test]
     fn get_subnets_ipv4_valid() {
-        let network_1 = Ipv4Network::from_str("10.51.56.128/25").unwrap();
-        let network_2 = Ipv4Network::from_str("60.0.0.0/8").unwrap();
-        let network_3 = Network::from_str("1234:1234::/32").unwrap();
-        let network_4 = Ipv4Network::from_str("23.80.0.0/16").unwrap();
+        let network_1 = Ipv4Net::from_str("10.51.56.128/25").unwrap();
+        let network_2 = Ipv4Net::from_str("60.0.0.0/8").unwrap();
+        let network_3 = IpNet::from_str("1234:1234::/32").unwrap();
+        let network_4 = Ipv4Net::from_str("23.80.0.0/16").unwrap();
         let ipam_configs = vec![
             bollard::models::IpamConfig {
                 subnet: Some(network_1.to_string()),
@@ -626,7 +623,7 @@ mod tests {
 
     #[test]
     fn get_subnet_ipv4_some() {
-        let expected_network = Ipv4Network::from_str("23.80.0.0/16").unwrap();
+        let expected_network = Ipv4Net::from_str("23.80.0.0/16").unwrap();
         let ipam_configs = vec![bollard::models::IpamConfig {
             subnet: Some(expected_network.to_string()),
             ..Default::default()
@@ -643,7 +640,7 @@ mod tests {
 
     #[test]
     fn get_subnet_ipv4_none() {
-        let network = Network::from_str("aabb::/16").unwrap();
+        let network = IpNet::from_str("aabb::/16").unwrap();
         let ipam_configs = vec![bollard::models::IpamConfig {
             subnet: Some(network.to_string()),
             ..Default::default()

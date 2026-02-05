@@ -1,11 +1,11 @@
 mod systemus_impl;
 
 pub use super::Result;
-use crate::relic::network::{NetworkAdapter, NetworkAdapterReader};
 use crate::sorcerer::Sorcerer;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use net_spider::network_adapter::{NetworkAdapter, NetworkAdapterReader};
 use std::collections::HashMap;
 pub use systemus_impl::SystemusImpl;
 

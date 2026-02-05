@@ -59,6 +59,8 @@ casbin = { version = "2.10", features = ["logging"], optional = true }
 slog = { version = "2.7", optional = true }
 url = { version = "2.5", features = ["serde"], optional = true }
 utoipa = { version = "5.4", features = ["axum_extras", "yaml", "non_strict_integers", "debug", "url"] }
+net-spider = { git = "https://codeberg.org/flecs-tech/net-spider.git", rev = "57999c8ad8bac26f88d71a45a904da43baa6c453" }
+ipnet = "2.11.0"
 
 [dev-dependencies]
 mockito = "1.4"

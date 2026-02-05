@@ -459,12 +459,12 @@ mod tests {
             .returning(|_, _| Ok(Network::default()));
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault_with_deployment(deployment);
-        assert_eq!(
+        assert!(matches!(
             DeploymentoImpl
                 .create_network(vault, "MockedDeployment".to_string(), config)
                 .await,
-            Ok(Network::default())
-        );
+            Ok(network) if network == Network::default()
+        ));
     }
 
     #[tokio::test]
@@ -493,14 +493,13 @@ mod tests {
             });
         let deployment = Deployment::Docker(Arc::new(deployment));
         let vault = create_test_vault_with_deployment(deployment);
-        assert_eq!(
+        assert!(matches!(
             DeploymentoImpl
                 .create_network(vault, "MockedDeployment".to_string(), config)
                 .await,
             Err(CreateNetworkError::Deployment(
-                crate::jeweler::network::CreateNetworkError::Other("TestError".to_string())
-            ))
-        );
+                crate::jeweler::network::CreateNetworkError::Other(e)
+            ))if e == "TestError"));
     }
 
     #[tokio::test]
@@ -514,13 +513,11 @@ mod tests {
             options: None,
         };
         let vault = create_empty_test_vault();
-        assert_eq!(
+        assert!(matches!(
             DeploymentoImpl
                 .create_network(vault, "MockedDeployment".to_string(), config)
                 .await,
-            Err(CreateNetworkError::DeploymentNotFound(
-                "MockedDeployment".to_string()
-            ))
-        );
+            Err(CreateNetworkError::DeploymentNotFound(id)) if id == "MockedDeployment"
+        ));
     }
 }

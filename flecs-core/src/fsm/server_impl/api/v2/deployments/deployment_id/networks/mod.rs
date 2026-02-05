@@ -3,7 +3,6 @@ pub mod network_id;
 
 use crate::fsm::server_impl::api::v2::deployments::deployment_id::networks::network_id::try_model_from_network;
 use crate::jeweler::network::{Network, NetworkConfig};
-use crate::relic::network::Ipv4Network;
 use crate::sorcerer::deploymento::{CreateNetworkError, Deploymento};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::deployments::{
@@ -16,6 +15,7 @@ use flecsd_axum_server::models::{
     DeploymentsDeploymentIdNetworksPostPathParams as PostPathParams,
     PostDeploymentNetwork as PostRequest,
 };
+use ipnet::Ipv4Net;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -108,9 +108,7 @@ fn try_network_config_from_post_request(
     })
 }
 
-fn try_subnet_from_post_request(
-    request: &PostRequest,
-) -> Result<Option<Ipv4Network>, anyhow::Error> {
+fn try_subnet_from_post_request(request: &PostRequest) -> Result<Option<Ipv4Net>, anyhow::Error> {
     if let Some(models::Ipam {
         ipv4: Some(models::Ipv4Ipam {
             address, netmask, ..
@@ -118,7 +116,7 @@ fn try_subnet_from_post_request(
         ..
     }) = request.ipam.as_ref()
     {
-        Ok(Some(Ipv4Network::new_from_address_and_subnet_mask(
+        Ok(Some(Ipv4Net::with_netmask(
             Ipv4Addr::from_str(address)?,
             Ipv4Addr::from_str(netmask)?,
         )?))
@@ -372,7 +370,7 @@ mod tests {
         };
         assert_eq!(
             try_subnet_from_post_request(&request).unwrap(),
-            Some(Ipv4Network::from_str("10.20.100.0/24").unwrap())
+            Some(Ipv4Net::from_str("10.20.100.0/24").unwrap())
         );
     }
 
@@ -478,7 +476,7 @@ mod tests {
             NetworkConfig {
                 kind: NetworkKind::IpvlanL2,
                 name: "Network".to_string(),
-                cidr_subnet: Some(Ipv4Network::from_str("10.20.100.0/24").unwrap()),
+                cidr_subnet: Some(Ipv4Net::from_str("10.20.100.0/24").unwrap()),
                 gateway: Some(Ipv4Addr::from_str("10.20.100.1").unwrap()),
                 parent_adapter: Some("parent".to_string()),
                 options: Some(HashMap::from([(
@@ -517,14 +515,17 @@ mod tests {
         assert!(try_network_config_from_post_request(request).is_err());
     }
 
-    fn post_test_data(
-        mock_result: anyhow::Result<Network, CreateNetworkError>,
+    fn post_test_data<F>(
+        mock_result: F,
     ) -> (
         Arc<Vault>,
         Arc<MockDeploymento>,
         PostPathParams,
         PostRequest,
-    ) {
+    )
+    where
+        F: Fn() -> anyhow::Result<Network, CreateNetworkError> + Send + 'static,
+    {
         let mut deploymento = MockDeploymento::new();
         let expected_config = NetworkConfig {
             kind: NetworkKind::Internal,
@@ -542,7 +543,7 @@ mod tests {
                 predicate::eq("MockDeployment".to_string()),
                 predicate::eq(expected_config),
             )
-            .return_const(mock_result);
+            .returning(move |_, _, _| mock_result());
         let vault = create_empty_test_vault();
         let path_params = PostPathParams {
             deployment_id: "MockDeployment".to_string(),
@@ -559,10 +560,11 @@ mod tests {
 
     #[tokio::test]
     async fn post_200() {
-        let (vault, deploymento, path_params, post_request) =
-            post_test_data(Err(CreateNetworkError::Deployment(
+        let (vault, deploymento, path_params, post_request) = post_test_data(|| {
+            Err(CreateNetworkError::Deployment(
                 crate::jeweler::network::CreateNetworkError::ExactNetworkExists(Network::default()),
-            )));
+            ))
+        });
         assert_eq!(
             post(vault, deploymento, path_params, post_request).await,
             PostResponse::Status200_AlreadyCreated
@@ -572,7 +574,7 @@ mod tests {
     #[tokio::test]
     async fn post_201() {
         let (vault, deploymento, path_params, post_request) =
-            post_test_data(Ok(Network::default()));
+            post_test_data(|| Ok(Network::default()));
         assert_eq!(
             post(vault, deploymento, path_params, post_request).await,
             PostResponse::Status201_Created
@@ -581,12 +583,13 @@ mod tests {
 
     #[tokio::test]
     async fn post_400_other_network_exists() {
-        let (vault, deploymento, path_params, post_request) =
-            post_test_data(Err(CreateNetworkError::Deployment(
+        let (vault, deploymento, path_params, post_request) = post_test_data(|| {
+            Err(CreateNetworkError::Deployment(
                 crate::jeweler::network::CreateNetworkError::DifferentNetworkExists(
                     Network::default(),
                 ),
-            )));
+            ))
+        });
         assert!(matches!(
             post(vault, deploymento, path_params, post_request).await,
             PostResponse::Status400_MalformedRequest(_)
@@ -595,13 +598,14 @@ mod tests {
 
     #[tokio::test]
     async fn post_400_network_config_invalid() {
-        let (vault, deploymento, path_params, post_request) =
-            post_test_data(Err(CreateNetworkError::Deployment(
+        let (vault, deploymento, path_params, post_request) = post_test_data(|| {
+            Err(CreateNetworkError::Deployment(
                 crate::jeweler::network::CreateNetworkError::NetworkConfigInvalid {
                     location: "Test".to_string(),
                     reason: "TestReason".to_string(),
                 },
-            )));
+            ))
+        });
         assert!(matches!(
             post(vault, deploymento, path_params, post_request).await,
             PostResponse::Status400_MalformedRequest(_)
@@ -636,9 +640,11 @@ mod tests {
 
     #[tokio::test]
     async fn post_404() {
-        let (vault, deploymento, path_params, post_request) = post_test_data(Err(
-            CreateNetworkError::DeploymentNotFound("MockDeployment".to_string()),
-        ));
+        let (vault, deploymento, path_params, post_request) = post_test_data(|| {
+            Err(CreateNetworkError::DeploymentNotFound(
+                "MockDeployment".to_string(),
+            ))
+        });
         assert_eq!(
             post(vault, deploymento, path_params, post_request).await,
             PostResponse::Status404_DeploymentNotFound
@@ -647,10 +653,11 @@ mod tests {
 
     #[tokio::test]
     async fn post_500() {
-        let (vault, deploymento, path_params, post_request) =
-            post_test_data(Err(CreateNetworkError::Deployment(
+        let (vault, deploymento, path_params, post_request) = post_test_data(|| {
+            Err(CreateNetworkError::Deployment(
                 crate::jeweler::network::CreateNetworkError::Other("TestError".to_string()),
-            )));
+            ))
+        });
         assert!(matches!(
             post(vault, deploymento, path_params, post_request).await,
             PostResponse::Status500_InternalServerError(_)

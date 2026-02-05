@@ -1,4 +1,4 @@
-use crate::relic::network::Ipv4Network;
+use ipnet::Ipv4Net;
 use std::ffi::OsString;
 use std::net::{AddrParseError, IpAddr, Ipv4Addr};
 use std::num::ParseIntError;
@@ -19,7 +19,7 @@ pub enum Error {
     #[error("Invalid url {1} from {0}: {2}")]
     InvalidUrl(&'static str, String, url::ParseError),
     #[error("Invalid network {1} from {0}: {2}")]
-    InvalidIpv4Network(&'static str, String, anyhow::Error),
+    InvalidIpv4Network(&'static str, String, ipnet::AddrParseError),
     #[error("Invalid ip {1} from {0}: {2}")]
     InvalidIp(&'static str, String, AddrParseError),
 }
@@ -63,11 +63,9 @@ pub trait VarReader {
             .transpose()
     }
 
-    fn read_network(&self, key: &'static str) -> Result<Option<Ipv4Network>> {
+    fn read_network(&self, key: &'static str) -> Result<Option<Ipv4Net>> {
         self.read_var(key)?
-            .map(|val| {
-                Ipv4Network::from_str(&val).map_err(|e| Error::InvalidIpv4Network(key, val, e))
-            })
+            .map(|val| Ipv4Net::from_str(&val).map_err(|e| Error::InvalidIpv4Network(key, val, e)))
             .transpose()
     }
 
@@ -275,7 +273,7 @@ pub mod test {
         let reader = MockVarReader::from_var((KEY, VALUE));
         assert_eq!(
             reader.read_network(KEY).unwrap(),
-            Some(Ipv4Network::try_new(Ipv4Addr::new(123, 123, 0, 0), 16).unwrap())
+            Some(Ipv4Net::new_assert(Ipv4Addr::new(123, 123, 0, 0), 16))
         );
     }
 

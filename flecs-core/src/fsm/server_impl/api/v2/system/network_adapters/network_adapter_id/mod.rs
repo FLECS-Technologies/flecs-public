@@ -1,11 +1,12 @@
 use crate::forge::vec::VecExtension;
-use crate::relic::device::net::NetDeviceReader;
-use crate::relic::network::{Ipv4Network, Network};
-use crate::relic::network::{Ipv6Network, NetType, NetworkAdapter, NetworkAdapterReader};
 use crate::sorcerer::systemus::Systemus;
 use flecsd_axum_server::apis::system::SystemNetworkAdaptersNetworkAdapterIdGetResponse as GetResponse;
 use flecsd_axum_server::models;
 use flecsd_axum_server::models::SystemNetworkAdaptersNetworkAdapterIdGetPathParams as GetPathParams;
+use ipnet::IpNet;
+use ipnet::{Ipv4Net, Ipv6Net};
+use net_spider::net_device::NetDeviceReader;
+use net_spider::network_adapter::{NetType, NetworkAdapter, NetworkAdapterReader};
 use std::net::IpAddr;
 use std::sync::Arc;
 
@@ -41,13 +42,13 @@ fn convert_addresses(
 }
 
 fn create_networks_model(
-    ipv4_networks: Vec<Ipv4Network>,
-    ipv6_networks: Vec<Ipv6Network>,
+    ipv4_networks: Vec<Ipv4Net>,
+    ipv6_networks: Vec<Ipv6Net>,
 ) -> Vec<models::Network> {
     ipv4_networks
         .into_iter()
-        .map(models::Network::from)
-        .chain(ipv6_networks.into_iter().map(models::Network::from))
+        .map(IntoModel::into_model)
+        .chain(ipv6_networks.into_iter().map(IntoModel::into_model))
         .collect()
 }
 
@@ -66,68 +67,72 @@ pub fn create_network_adapter_model(
         networks: networks.empty_to_none(),
         gateway: value.gateway.as_ref().map(ToString::to_string),
         mac_address: value.mac,
-        net_type: value.net_type.into(),
+        net_type: value.net_type.into_model(),
     }
 }
 
-impl From<Network> for models::Network {
-    fn from(value: Network) -> Self {
-        match value {
-            Network::Ipv4(network) => Self::from(network),
-            Network::Ipv6(network) => Self::from(network),
+trait IntoModel<M> {
+    fn into_model(self) -> M;
+}
+
+impl IntoModel<models::Network> for IpNet {
+    fn into_model(self) -> models::Network {
+        match self {
+            IpNet::V4(network) => models::Network::Ipv4Network(Box::new(network.into_model())),
+            IpNet::V6(network) => models::Network::Ipv6Network(Box::new(network.into_model())),
         }
     }
 }
 
-impl From<NetType> for models::NetworkType {
-    fn from(value: NetType) -> Self {
-        match value {
-            NetType::Unknown => Self::Unknown,
-            NetType::Wired => Self::Wired,
-            NetType::Wireless => Self::Wireless,
-            NetType::Local => Self::Local,
-            NetType::Bridge => Self::Bridge,
-            NetType::Virtual => Self::Virtual,
+impl IntoModel<models::Ipv4Network> for Ipv4Net {
+    fn into_model(self) -> models::Ipv4Network {
+        models::Ipv4Network {
+            address: self.addr().to_string(),
+            netmask: self.netmask().to_string(),
         }
     }
 }
 
-impl From<Ipv4Network> for models::Ipv4Network {
-    fn from(value: Ipv4Network) -> Self {
-        Self {
-            address: value.address().to_string(),
-            netmask: value.subnet_mask().to_string(),
+impl IntoModel<models::Ipv6Network> for Ipv6Net {
+    fn into_model(self) -> models::Ipv6Network {
+        models::Ipv6Network {
+            address: self.addr().to_string(),
+            prefix_len: self.prefix_len(),
         }
     }
 }
 
-impl From<Ipv4Network> for models::Network {
-    fn from(value: Ipv4Network) -> Self {
-        Self::Ipv4Network(Box::new(value.into()))
+impl IntoModel<models::Network> for Ipv4Net {
+    fn into_model(self) -> models::Network {
+        IpNet::V4(self).into_model()
     }
 }
 
-impl From<Ipv6Network> for models::Ipv6Network {
-    fn from(value: Ipv6Network) -> Self {
-        Self {
-            address: value.address().to_string(),
-            prefix_len: value.prefix_len(),
+impl IntoModel<models::Network> for Ipv6Net {
+    fn into_model(self) -> models::Network {
+        IpNet::V6(self).into_model()
+    }
+}
+
+impl IntoModel<models::NetworkType> for NetType {
+    fn into_model(self) -> models::NetworkType {
+        match self {
+            NetType::Unknown => models::NetworkType::Unknown,
+            NetType::Wired => models::NetworkType::Wired,
+            NetType::Wireless => models::NetworkType::Wireless,
+            NetType::Local => models::NetworkType::Local,
+            NetType::Bridge => models::NetworkType::Bridge,
+            NetType::Virtual => models::NetworkType::Virtual,
         }
-    }
-}
-
-impl From<Ipv6Network> for models::Network {
-    fn from(value: Ipv6Network) -> Self {
-        Self::Ipv6Network(Box::new(value.into()))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::relic::device::net::MockNetDeviceReader;
-    use crate::relic::network::{
-        MockNetworkAdapterReader, full_network_adapter, minimal_network_adapter,
+    use crate::relic::network::tests::{
+        MockNetDeviceReader, MockNetworkAdapterReader, full_network_adapter,
+        minimal_network_adapter,
     };
     use crate::sorcerer::systemus::MockSystemus;
     use mockall::predicate::eq;
@@ -217,11 +222,11 @@ mod tests {
     fn create_networks_model_test(ipv4: &[&str], ipv6: &[&str], expected: Vec<models::Network>) {
         let ipv4 = ipv4
             .iter()
-            .map(|ip| Ipv4Network::from_str(ip).unwrap())
+            .map(|ip| Ipv4Net::from_str(ip).unwrap())
             .collect();
         let ipv6 = ipv6
             .iter()
-            .map(|ip| Ipv6Network::from_str(ip).unwrap())
+            .map(|ip| Ipv6Net::from_str(ip).unwrap())
             .collect();
         assert_eq!(create_networks_model(ipv4, ipv6), expected);
     }
@@ -372,7 +377,7 @@ mod tests {
     #[test_case(NetType::Bridge, models::NetworkType::Bridge)]
     #[test_case(NetType::Virtual, models::NetworkType::Virtual)]
     fn model_from_net_type(source: NetType, expected: models::NetworkType) {
-        assert_eq!(models::NetworkType::from(source), expected);
+        assert_eq!(source.into_model(), expected);
     }
 
     #[test_case("10.20.30.0", 24, "255.255.255.0")]
@@ -380,14 +385,20 @@ mod tests {
     #[test_case("100.0.0.0", 8, "255.0.0.0")]
     #[test_case("200.200.80.0", 20, "255.255.240.0")]
     fn model_from_ipv4_network(ip: &str, network_size: u8, expected_subnet_mask: &str) {
-        let network = Ipv4Network::try_new(Ipv4Addr::from_str(ip).unwrap(), network_size).unwrap();
+        let network = Ipv4Net::new_assert(Ipv4Addr::from_str(ip).unwrap(), network_size);
         let expected_model =
             models::Ipv4Network::new(ip.to_string(), expected_subnet_mask.to_string());
-        assert_eq!(models::Ipv4Network::from(network), expected_model);
-        let expected_model = models::Network::Ipv4Network(Box::new(expected_model));
-        assert_eq!(models::Network::from(network), expected_model);
         assert_eq!(
-            models::Network::from(Network::Ipv4(network)),
+            <Ipv4Net as IntoModel<models::Ipv4Network>>::into_model(network),
+            expected_model
+        );
+        let expected_model = models::Network::Ipv4Network(Box::new(expected_model));
+        assert_eq!(
+            <Ipv4Net as IntoModel<models::Network>>::into_model(network),
+            expected_model
+        );
+        assert_eq!(
+            <IpNet as IntoModel<models::Network>>::into_model(IpNet::V4(network)),
             expected_model
         );
     }
@@ -412,13 +423,19 @@ mod tests {
     #[test_case("9926:8e1a:47ee:c000::", 50)]
     #[test_case("5abd:c7f5:e300::", 43)]
     fn model_from_ipv6_network(ip: &str, prefix_len: u8) {
-        let network = Ipv6Network::new(Ipv6Addr::from_str(ip).unwrap(), prefix_len);
+        let network = Ipv6Net::new_assert(Ipv6Addr::from_str(ip).unwrap(), prefix_len);
         let expected_model = models::Ipv6Network::new(ip.to_string(), prefix_len);
-        assert_eq!(models::Ipv6Network::from(network), expected_model);
-        let expected_model = models::Network::Ipv6Network(Box::new(expected_model));
-        assert_eq!(models::Network::from(network), expected_model);
         assert_eq!(
-            models::Network::from(Network::Ipv6(network)),
+            <Ipv6Net as IntoModel<models::Ipv6Network>>::into_model(network),
+            expected_model
+        );
+        let expected_model = models::Network::Ipv6Network(Box::new(expected_model));
+        assert_eq!(
+            <Ipv6Net as IntoModel<models::Network>>::into_model(network),
+            expected_model
+        );
+        assert_eq!(
+            <IpNet as IntoModel<models::Network>>::into_model(IpNet::V6(network)),
             expected_model
         );
     }

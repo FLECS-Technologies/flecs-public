@@ -1,8 +1,6 @@
 use crate::fsm::server_impl::ServerImpl;
-use crate::relic::device::net::NetDeviceReaderImpl;
 use crate::relic::device::usb::UsbDeviceReaderImpl;
 use crate::relic::floxy::Floxy;
-use crate::relic::network::NetworkAdapterReaderImpl;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::deploymento::Deploymento;
@@ -16,6 +14,8 @@ use crate::sorcerer::providius::Providius;
 use crate::sorcerer::systemus::Systemus;
 use crate::vault::Vault;
 use axum::extract::FromRef;
+use net_spider::net_device::NetDeviceReaderImpl;
+use net_spider::network_adapter::NetworkAdapterReaderImpl;
 use std::sync::Arc;
 
 pub struct ProvidiusState(pub Arc<dyn Providius>);

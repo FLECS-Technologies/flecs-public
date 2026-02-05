@@ -222,7 +222,6 @@ pub mod tests {
         EnvironmentVariable, PortMapping, PortRange, VolumeMount,
     };
     use crate::lore;
-    use crate::relic::network::{Ipv4Iterator, Ipv4Network};
     use crate::relic::var::test::MockVarReader;
     use crate::vault::pouch::app::tests::{
         EDITOR_APP_NAME, EDITOR_APP_VERSION, LABEL_APP_NAME, LABEL_APP_VERSION, MINIMAL_APP_2_NAME,
@@ -231,6 +230,7 @@ pub mod tests {
     };
     use crate::vault::pouch::manifest::tests::create_test_manifest;
     use crate::vault::tests::create_test_vault_raw;
+    use ipnet::Ipv4Net;
     use serde_json::Value;
     use std::net::Ipv6Addr;
     use std::path::PathBuf;
@@ -1263,7 +1263,7 @@ pub mod tests {
     fn reserve_free_ipv4_address_some() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let network = Ipv4NetworkAccess::try_new(
-            Ipv4Network::try_new(Ipv4Addr::new(20, 30, 40, 0), 24).unwrap(),
+            Ipv4Net::new_assert(Ipv4Addr::new(20, 30, 40, 0), 24),
             Ipv4Addr::new(20, 30, 40, 1),
         )
         .unwrap();
@@ -1317,15 +1317,12 @@ pub mod tests {
     fn reserve_free_ipv4_address_none() {
         let lore = Arc::new(lore::test_lore(testdir!(), &MockVarReader::new()));
         let network = Ipv4NetworkAccess::try_new(
-            Ipv4Network::try_new(Ipv4Addr::new(20, 30, 40, 0), 24).unwrap(),
+            Ipv4Net::new_assert(Ipv4Addr::new(20, 30, 40, 0), 24),
             Ipv4Addr::new(20, 30, 40, 1),
         )
         .unwrap();
-        let reserved_ip_addresses: HashSet<IpAddr> = Ipv4Iterator::from(
-            Ipv4Addr::new(20, 30, 40, 2).into()..Ipv4Addr::new(20, 30, 40, 255).into(),
-        )
-        .map(Into::into)
-        .collect();
+        let reserved_ip_addresses: HashSet<IpAddr> =
+            network.network().hosts().skip(1).map(Into::into).collect();
         let mut pouch = InstancePouch {
             lore,
             instances: HashMap::default(),

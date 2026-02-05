@@ -14,7 +14,6 @@ use crate::jeweler::network::{
 use crate::jeweler::volume::{Volume, VolumeDeployment, VolumeId};
 use crate::lore::{ExportLoreRef, ImportLoreRef, InstanceLoreRef, NetworkLoreRef};
 use crate::quest::{Quest, QuestId, State, SyncQuest};
-use crate::relic::network::{Ipv4Network, NetworkAdapterReader, NetworkAdapterReaderImpl};
 use crate::vault::pouch::deployment::DeploymentId;
 use crate::{jeweler, relic};
 use async_trait::async_trait;
@@ -29,6 +28,8 @@ use bollard::network::{ConnectNetworkOptions, CreateNetworkOptions, DisconnectNe
 use bollard::volume::CreateVolumeOptions;
 use bollard::{API_DEFAULT_VERSION, Docker};
 use futures_util::future::{BoxFuture, join_all};
+use ipnet::Ipv4Net;
+use net_spider::network_adapter::{NetworkAdapterReader, NetworkAdapterReaderImpl};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Formatter;
@@ -180,11 +181,9 @@ impl DockerDeploymentImpl {
         kind == network.guess_network_kind()
     }
 
-    fn subnet_fits_network(subnet: Option<Ipv4Network>, network: &Network) -> anyhow::Result<bool> {
+    fn subnet_fits_network(subnet: Option<Ipv4Net>, network: &Network) -> anyhow::Result<bool> {
         let fits = match subnet {
-            Some(subnet) => network
-                .subnets()?
-                .contains(&relic::network::Network::Ipv4(subnet)),
+            Some(subnet) => network.subnets()?.contains(&ipnet::IpNet::V4(subnet)),
             None => true,
         };
         Ok(fits)
@@ -815,10 +814,15 @@ impl DockerDeploymentImpl {
                                 ),
                             });
                         }
-                        config.cidr_subnet = Some(relic::network::ipv4_to_network(
-                            *parent_adapter.ipv4_networks[0].address(),
-                            parent_adapter.ipv4_networks[0].subnet_mask(),
-                        ));
+                        config.cidr_subnet = Some(Ipv4Net::with_netmask(
+                            parent_adapter.ipv4_networks[0].addr(),
+                            parent_adapter.ipv4_networks[0].netmask(),
+                        ).map_err(|e| CreateNetworkError::NetworkConfigInvalid {
+                            location: "parent_adapter".to_string(),
+                            reason: format!(
+                                "Can not construct cidr network from parent network adapter {parent_name}: {e}"
+                            ),
+                        })?);
                         config.gateway = parent_adapter.gateway;
                     }
                     _ => {}
@@ -1366,7 +1370,6 @@ mod tests {
     use super::*;
 
     use crate::jeweler::network::{Network, NetworkConfig, NetworkKind};
-    use crate::relic::network::Ipv4Network;
     use std::collections::HashMap;
     use std::net::Ipv4Addr;
     use std::str::FromStr;
@@ -1375,7 +1378,7 @@ mod tests {
         let config = NetworkConfig {
             kind: NetworkKind::Bridge,
             name: "TestNetwork".to_string(),
-            cidr_subnet: Some(Ipv4Network::from_str("10.67.3.0/24").unwrap()),
+            cidr_subnet: Some(Ipv4Net::from_str("10.67.3.0/24").unwrap()),
             gateway: Some(Ipv4Addr::from_str("10.67.3.12").unwrap()),
             parent_adapter: Some("ParentTestNetwork".to_string()),
             options: Some(HashMap::from([
@@ -1429,7 +1432,7 @@ mod tests {
     #[test]
     fn network_config_fits_network_false_subnet() {
         let (network, mut config) = fitting_network_config_data();
-        config.cidr_subnet = Some(Ipv4Network::from_str("10.20.30.0/24").unwrap());
+        config.cidr_subnet = Some(Ipv4Net::from_str("10.20.30.0/24").unwrap());
         assert!(!DockerDeploymentImpl::network_config_fits_network(&config, &network).unwrap())
     }
 
@@ -1580,7 +1583,7 @@ mod tests {
         let network = subnet_network_data();
         assert!(
             DockerDeploymentImpl::subnet_fits_network(
-                Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
+                Some(Ipv4Net::from_str("44.11.0.0/16").unwrap()),
                 &network
             )
             .unwrap()
@@ -1598,7 +1601,7 @@ mod tests {
         let network = subnet_network_data();
         assert!(
             !DockerDeploymentImpl::subnet_fits_network(
-                Some(Ipv4Network::from_str("44.21.0.0/16").unwrap()),
+                Some(Ipv4Net::from_str("44.21.0.0/16").unwrap()),
                 &network
             )
             .unwrap()
@@ -1621,7 +1624,7 @@ mod tests {
             });
         assert!(
             DockerDeploymentImpl::subnet_fits_network(
-                Some(Ipv4Network::from_str("44.11.0.0/16").unwrap()),
+                Some(Ipv4Net::from_str("44.11.0.0/16").unwrap()),
                 &network
             )
             .is_err()

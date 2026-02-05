@@ -1181,11 +1181,11 @@ impl DockerInstance {
                     ip: current,
                 }),
                 Ok(Some(network)) => {
-                    let subnet_mask = network.subnet_mask();
+                    let subnet_mask = network.netmask();
                     // Set network part to 0
                     let ip = ipv4 & subnet_mask.complement();
                     // Use network part from new network
-                    Ok(IpAddr::from(network.address() | ip))
+                    Ok(IpAddr::from(network.addr() | ip))
                 }
             },
             IpAddr::V6(ipv6) => match network.subnet_ipv6() {
@@ -1198,11 +1198,11 @@ impl DockerInstance {
                     ip: current,
                 }),
                 Ok(Some(network)) => {
-                    let subnet_mask = network.subnet_mask();
+                    let subnet_mask = network.netmask();
                     // Set network part to 0
                     let ip = ipv6 & subnet_mask.complement();
                     // Use network part from new network
-                    Ok(IpAddr::from(network.address() | ip))
+                    Ok(IpAddr::from(network.addr() | ip))
                 }
             },
         }

@@ -1,7 +1,5 @@
 use crate::fsm::server_impl::ServerImpl;
-use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
-use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
 use crate::sorcerer::deploymento::Deploymento;
@@ -24,6 +22,8 @@ use flecsd_axum_server::models::{
     AppsInstallPostRequest, AppsSideloadPostRequest,
 };
 use http::Method;
+use net_spider::net_device::NetDeviceReader;
+use net_spider::network_adapter::NetworkAdapterReader;
 
 #[async_trait]
 impl<

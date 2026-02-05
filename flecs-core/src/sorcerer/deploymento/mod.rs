@@ -59,7 +59,7 @@ pub enum GetDeploymentNetworkError {
     },
 }
 
-#[derive(thiserror::Error, Debug, Clone, PartialEq)]
+#[derive(thiserror::Error, Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum CreateNetworkError {
     #[error("Deployment not found: {0}")]

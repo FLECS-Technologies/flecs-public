@@ -773,13 +773,13 @@ pub mod tests {
     use crate::jeweler::gem::manifest::single::EnvironmentVariable;
     use crate::quest::Quest;
     use crate::relic::floxy::MockFloxy;
-    use crate::relic::network::Ipv4Network;
     use crate::vault;
     use crate::vault::pouch::instance::tests::{
         EDITOR_INSTANCE, ENV_INSTANCE, LABEL_INSTANCE, MINIMAL_INSTANCE, MOUNT_INSTANCE,
         NETWORK_INSTANCE, PORT_MAPPING_INSTANCE, RUNNING_INSTANCE, UNKNOWN_INSTANCE_1,
         UNKNOWN_INSTANCE_2, UNKNOWN_INSTANCE_3, USB_DEV_INSTANCE,
     };
+    use ipnet::Ipv4Net;
     use mockall::predicate;
     use mockall::predicate::eq;
     use std::collections::HashMap;
@@ -1103,7 +1103,7 @@ pub mod tests {
     async fn make_ip_reservation_test() {
         let vault = vault::tests::create_test_vault(HashMap::new(), HashMap::new(), None);
         let network = Ipv4NetworkAccess::try_new(
-            Ipv4Network::try_new(Ipv4Addr::new(10, 18, 102, 0), 24).unwrap(),
+            Ipv4Net::new_assert(Ipv4Addr::new(10, 18, 102, 0), 24),
             Ipv4Addr::new(10, 18, 102, 1),
         )
         .unwrap();

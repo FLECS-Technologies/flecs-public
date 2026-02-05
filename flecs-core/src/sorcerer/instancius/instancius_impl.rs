@@ -1090,7 +1090,7 @@ impl Instancius for InstanciusImpl {
                 if !network
                     .subnets_ipv4()?
                     .iter()
-                    .any(|network| network.contains(address))
+                    .any(|network| network.contains(&address))
                 {
                     return Err(ConnectInstanceConfigNetworkError::AddressOutOfRange {
                         network: network_id,
@@ -1315,7 +1315,6 @@ pub mod tests {
     use crate::quest::Quest;
     use crate::relic::device::usb::{Error, MockUsbDeviceReader};
     use crate::relic::floxy::MockFloxy;
-    use crate::relic::network::Ipv4Network;
     use crate::relic::var::test::MockVarReader;
     use crate::vault::pouch::Pouch;
     use crate::vault::pouch::app::tests::{
@@ -1333,6 +1332,7 @@ pub mod tests {
     use crate::vault::tests::create_test_vault;
     use crate::{lore, vault};
     use bollard::models::{Ipam, IpamConfig, Network};
+    use ipnet::Ipv4Net;
     use mockall::predicate;
     use std::collections::{HashMap, HashSet};
     use std::io::ErrorKind;
@@ -4297,7 +4297,7 @@ pub mod tests {
 
     #[test]
     fn network_access_from_network_ok() {
-        let network = Ipv4Network::from_str("10.20.128.0/17").unwrap();
+        let network = Ipv4Net::from_str("10.20.128.0/17").unwrap();
         let gateway = Ipv4Addr::new(10, 20, 128, 11);
         let expected_network_access = Ipv4NetworkAccess::try_new(network, gateway).unwrap();
         let network = Network {
@@ -4340,7 +4340,7 @@ pub mod tests {
 
     #[test]
     fn network_access_from_network_err_no_gateway() {
-        let network = Ipv4Network::from_str("10.20.128.0/17").unwrap();
+        let network = Ipv4Net::from_str("10.20.128.0/17").unwrap();
         let network = Network {
             name: Some("TestNetwork".to_string()),
             ipam: Some(Ipam {
@@ -4360,7 +4360,7 @@ pub mod tests {
 
     #[test]
     fn network_access_from_network_err_gateway_not_in_network() {
-        let network = Ipv4Network::from_str("10.20.128.0/17").unwrap();
+        let network = Ipv4Net::from_str("10.20.128.0/17").unwrap();
         let gateway = Ipv4Addr::new(11, 20, 128, 11);
         let network = Network {
             name: Some("TestNetwork".to_string()),
@@ -4382,7 +4382,7 @@ pub mod tests {
 
     fn connect_instance_to_network_ok_data(expected_ip_address: Ipv4Addr) -> (Arc<Vault>, Network) {
         const NETWORK_NAME: &str = "new-test-network";
-        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let network = Ipv4Net::from_str("10.20.0.0/16").unwrap();
         let gateway = Ipv4Addr::new(10, 20, 124, 1);
         let network = Network {
             name: Some(NETWORK_NAME.to_string()),
@@ -4515,7 +4515,7 @@ pub mod tests {
         const NETWORK_NAME: &str = "new-test-network";
         let ip_address = Ipv4Addr::new(10, 4, 0, 2);
         let mut deployment = MockedDockerDeployment::new();
-        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let network = Ipv4Net::from_str("10.20.0.0/16").unwrap();
         let gateway = Ipv4Addr::new(10, 20, 124, 1);
         let network = Network {
             name: Some(NETWORK_NAME.to_string()),
@@ -4565,7 +4565,7 @@ pub mod tests {
     #[tokio::test]
     async fn connect_instance_to_network_err_no_free_address() {
         const NETWORK_NAME: &str = "new-test-network";
-        let network = Ipv4Network::from_str("10.20.0.0/28").unwrap();
+        let network = Ipv4Net::from_str("10.20.0.0/28").unwrap();
         let gateway = Ipv4Addr::new(10, 20, 0, 2);
         let network = Network {
             name: Some(NETWORK_NAME.to_string()),
@@ -4629,7 +4629,7 @@ pub mod tests {
     #[tokio::test]
     async fn connect_instance_to_network_err_instance_not_found() {
         const NETWORK_NAME: &str = "test-network";
-        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let network = Ipv4Net::from_str("10.20.0.0/16").unwrap();
         let gateway = Ipv4Addr::new(10, 20, 0, 2);
         let network = Network {
             name: Some(NETWORK_NAME.to_string()),
@@ -4658,7 +4658,7 @@ pub mod tests {
     async fn connect_instance_to_network_err_connect() {
         const NETWORK_NAME: &str = "new-test-network";
         let ip_address = Ipv4Addr::new(10, 20, 0, 2);
-        let network = Ipv4Network::from_str("10.20.0.0/16").unwrap();
+        let network = Ipv4Net::from_str("10.20.0.0/16").unwrap();
         let gateway = Ipv4Addr::new(10, 20, 0, 1);
         let network = Network {
             name: Some(NETWORK_NAME.to_string()),
