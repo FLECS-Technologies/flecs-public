@@ -3,6 +3,7 @@ use crate::lore::NetworkLoreRef;
 use crate::quest::SyncQuest;
 use anyhow::Error;
 use async_trait::async_trait;
+use ipnet::Ipv4Net;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
@@ -72,13 +73,13 @@ impl From<&str> for NetworkKind {
 pub struct NetworkConfig {
     pub kind: NetworkKind,
     pub name: String,
-    pub cidr_subnet: Option<crate::relic::network::Ipv4Network>,
+    pub cidr_subnet: Option<Ipv4Net>,
     pub gateway: Option<Ipv4Addr>,
     pub parent_adapter: Option<String>,
     pub options: Option<HashMap<String, String>>,
 }
 
-#[derive(thiserror::Error, Debug, Clone, PartialEq)]
+#[derive(thiserror::Error, Debug)]
 pub enum CreateNetworkError {
     #[error("Network config invalid at {location}: {reason}")]
     NetworkConfigInvalid { location: String, reason: String },
@@ -86,6 +87,8 @@ pub enum CreateNetworkError {
     ExactNetworkExists(Network),
     #[error("Network with same name but different config already exists")]
     DifferentNetworkExists(Network),
+    #[error("Failed to create network: {0}")]
+    Spider(#[from] net_spider::Error),
     #[error("Failed to create network: {0}")]
     Other(String),
 }
@@ -100,12 +103,6 @@ pub enum InspectNetworkError {
 
 impl From<Error> for CreateNetworkError {
     fn from(value: Error) -> Self {
-        Self::Other(value.to_string())
-    }
-}
-
-impl From<crate::relic::network::Error> for CreateNetworkError {
-    fn from(value: crate::relic::network::Error) -> Self {
         Self::Other(value.to_string())
     }
 }

@@ -4,10 +4,10 @@ pub mod network;
 pub mod system;
 pub mod var;
 pub use super::{Error, Result};
-use crate::relic::device::net::{NetDeviceReader, NetDeviceReaderImpl};
 use crate::relic::device::usb::{UsbDeviceReader, UsbDeviceReaderImpl};
 use crate::relic::floxy::{Floxy, FloxyImpl};
-use crate::relic::network::{NetworkAdapterReader, NetworkAdapterReaderImpl};
+use net_spider::net_device::{NetDeviceReader, NetDeviceReaderImpl};
+use net_spider::network_adapter::{NetworkAdapterReader, NetworkAdapterReaderImpl};
 use std::sync::Arc;
 
 /// Helper functions that provide async versions of [flecstract::tar::extract] and [flecstract::tar::archive]

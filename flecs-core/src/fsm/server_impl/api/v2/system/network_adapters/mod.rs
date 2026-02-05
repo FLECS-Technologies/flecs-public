@@ -1,8 +1,8 @@
-use crate::relic::device::net::NetDeviceReader;
-use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::systemus::Systemus;
 use flecsd_axum_server::apis::system::SystemNetworkAdaptersGetResponse as GetResponse;
 use flecsd_axum_server::models;
+use net_spider::net_device::NetDeviceReader;
+use net_spider::network_adapter::NetworkAdapterReader;
 use std::sync::Arc;
 
 pub mod network_adapter_id;
@@ -30,13 +30,12 @@ pub fn get(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::relic::device::net::MockNetDeviceReader;
-    use crate::relic::network::{
-        Ipv4Network, Ipv6Network, MockNetworkAdapterReader, NetType, NetworkAdapter,
-    };
+    use crate::relic::network::tests::{MockNetDeviceReader, MockNetworkAdapterReader};
     use crate::sorcerer::systemus::MockSystemus;
     use flecsd_axum_server::models;
+    use ipnet::{Ipv4Net, Ipv6Net};
     use mockall::predicate::eq;
+    use net_spider::network_adapter::{NetType, NetworkAdapter};
     use std::collections::HashMap;
     use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
     use std::str::FromStr;
@@ -55,13 +54,13 @@ mod tests {
                         mac: Some("D7:62:A1:BB:35:80".to_string()),
                         net_type: NetType::Wired,
                         ipv4_networks: vec![
-                            Ipv4Network::new_from_address_and_subnet_mask(
+                            Ipv4Net::with_netmask(
                                 Ipv4Addr::new(192, 168, 0, 0),
                                 Ipv4Addr::new(255, 255, 0, 0),
                             )
                             .unwrap(),
                         ],
-                        ipv6_networks: vec![Ipv6Network::new(
+                        ipv6_networks: vec![Ipv6Net::new_assert(
                             Ipv6Addr::new(0x1234, 0x5678, 0x90ab, 0xcdef, 0xaabb, 0xccdd, 0, 0),
                             96,
                         )],

@@ -14,9 +14,7 @@ use crate::enchantment::Enchantments;
 use crate::fsm::console_client::ConsoleClient;
 use crate::lore::Lore;
 use crate::relic::Relics;
-use crate::relic::device::net::NetDeviceReader;
 use crate::relic::device::usb::UsbDeviceReader;
-use crate::relic::network::NetworkAdapterReader;
 use crate::sorcerer::Sorcerers;
 use crate::sorcerer::appraiser::AppRaiser;
 use crate::sorcerer::authmancer::Authmancer;
@@ -35,6 +33,8 @@ use anyhow::Error;
 pub use api::v2::ApiDoc;
 use flecs_console_client::models::SessionId;
 use flecsd_axum_server::models::AdditionalInfo;
+use net_spider::net_device::NetDeviceReader;
+use net_spider::network_adapter::NetworkAdapterReader;
 use std::sync::Arc;
 
 fn additional_info_from_error(error: Error) -> AdditionalInfo {

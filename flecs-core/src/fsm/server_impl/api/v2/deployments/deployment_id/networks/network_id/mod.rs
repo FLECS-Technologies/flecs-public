@@ -55,8 +55,8 @@ fn try_ipv4_ipam_model_from_network(value: &Network) -> crate::Result<Option<mod
     match value.subnets_and_gateways_ipv4()?.into_iter().next() {
         None => Ok(None),
         Some((network, gateway)) => Ok(Some(models::Ipv4Ipam {
-            address: network.address().to_string(),
-            netmask: network.subnet_mask().to_string(),
+            address: network.addr().to_string(),
+            netmask: network.netmask().to_string(),
             gateway: gateway.map(|gateway| gateway.to_string()),
         })),
     }
