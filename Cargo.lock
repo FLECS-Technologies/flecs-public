@@ -1052,6 +1052,7 @@ dependencies = [
  "ipnet",
  "jsonwebtoken",
  "libc 0.2.177",
+ "margo_types",
  "mockall",
  "mockito",
  "net-spider",
@@ -1066,6 +1067,7 @@ dependencies = [
  "rusb",
  "serde",
  "serde_json",
+ "serde_norway",
  "serde_with",
  "slog",
  "testdir",
@@ -2049,6 +2051,14 @@ name = "log"
 version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
+
+[[package]]
+name = "margo_types"
+version = "0.1.0"
+source = "git+https://codeberg.org/flecs-tech/margo-types-rs.git?rev=00e1a45d6c4ccbaa7d78dbb5d0c49b5c45c39489#00e1a45d6c4ccbaa7d78dbb5d0c49b5c45c39489"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "matchers"

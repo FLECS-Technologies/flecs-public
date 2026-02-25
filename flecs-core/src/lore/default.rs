@@ -92,6 +92,11 @@ pub mod system {
     }
 }
 
+pub mod margo {
+    pub const BASE_DIRECTORY_NAME: &str = "margo";
+    pub const APPLICATION_DEPLOYMENTS_DIRECTORY_NAME: &str = "application_deployments";
+}
+
 #[cfg(test)]
 pub const BASE_PATH: &str = "/tmp/flecs-tests/var/lib/flecs/";
 #[cfg(not(test))]

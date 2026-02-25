@@ -1,4 +1,5 @@
 pub(crate) mod app;
+pub(crate) mod application_deployment;
 pub(crate) mod deployment;
 pub(crate) mod instance;
 pub(crate) mod manifest;

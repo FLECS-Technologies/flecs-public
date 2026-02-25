@@ -3,7 +3,7 @@ use crate::forge::serde::{EnvFilterWrapper, UriWrapper};
 use crate::lore::AuthLore;
 use crate::lore::{
     AppLore, ConsoleLore, DeploymentLore, ExportLore, FloxyLore, ImportLore, InstanceLore, Lore,
-    ManifestLore, NetworkLore, ProviderLore, SecretLore, SystemLore,
+    ManifestLore, MargoLore, NetworkLore, ProviderLore, SecretLore, SystemLore,
 };
 use serde::{Deserialize, Serialize};
 use std::ffi::OsStr;
@@ -95,6 +95,8 @@ pub struct FlecsConfig {
     pub provider: Option<ProviderConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub system: Option<SystemConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub margo: Option<MargoConfig>,
 }
 
 impl Default for FlecsConfig {
@@ -118,6 +120,7 @@ impl Default for FlecsConfig {
             auth: None,
             provider: None,
             system: None,
+            margo: None,
         }
     }
 }
@@ -146,6 +149,7 @@ impl From<&Lore> for FlecsConfig {
             auth: Some((&value.auth).into()),
             provider: Some((&value.provider).into()),
             system: Some((&value.system).into()),
+            margo: Some((&value.margo).into()),
         }
     }
 }
@@ -360,6 +364,23 @@ impl From<&SystemLore> for SystemConfig {
     }
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct MargoConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_path: Option<PathBuf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub application_deployments_path: Option<PathBuf>,
+}
+
+impl From<&MargoLore> for MargoConfig {
+    fn from(value: &MargoLore) -> Self {
+        Self {
+            base_path: Some(value.base_path.clone()),
+            application_deployments_path: Some(value.application_deployments_path.clone()),
+        }
+    }
+}
+
 impl FlecsConfig {
     pub async fn from_path(path: &Path) -> Result<Self> {
         let content = tokio::fs::read_to_string(path).await?;
@@ -396,6 +417,7 @@ impl Mergeable for FlecsConfig {
         self.manifest.merge(other.manifest);
         self.network.merge(other.network);
         self.secret.merge(other.secret);
+        self.margo.merge(other.margo);
     }
 }
 
@@ -500,6 +522,14 @@ impl Mergeable for Listener {
 impl Mergeable for ProviderConfig {
     fn merge(&mut self, other: Self) {
         self.base_path.trivial_merge(other.base_path);
+    }
+}
+
+impl Mergeable for MargoConfig {
+    fn merge(&mut self, other: Self) {
+        self.base_path.trivial_merge(other.base_path);
+        self.application_deployments_path
+            .trivial_merge(other.application_deployments_path);
     }
 }
 

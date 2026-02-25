@@ -3,8 +3,8 @@ use crate::forge::serde::EnvFilterWrapper;
 use crate::lore::conf::AuthConfig;
 use crate::lore::conf::{
     AppConfig, ConsoleConfig, DeploymentConfig, ExportConfig, FlecsConfig, FloxyConfig,
-    ImportConfig, InstanceConfig, Listener, ManifestConfig, NetworkConfig, ProviderConfig,
-    SecretConfig, SystemConfig,
+    ImportConfig, InstanceConfig, Listener, ManifestConfig, MargoConfig, NetworkConfig,
+    ProviderConfig, SecretConfig, SystemConfig,
 };
 use crate::relic::var;
 use crate::relic::var::VarReader;
@@ -95,6 +95,7 @@ impl FlecsConfig {
             auth: AuthConfig::from_var_reader(reader)?,
             provider: ProviderConfig::from_var_reader(reader),
             system: SystemConfig::from_var_reader(reader),
+            margo: MargoConfig::from_var_reader(reader)?,
         })
     }
 }
@@ -438,6 +439,26 @@ pub mod network {
         fn from_var_reader_none() {
             let reader = &MockVarReader::new();
             assert!(NetworkConfig::from_var_reader(reader).unwrap().is_none());
+        }
+    }
+}
+
+pub mod margo {
+    use super::Result;
+    use crate::lore::conf::MargoConfig;
+    use crate::relic::var::VarReader;
+
+    const BASE_PATH: &str = "FLECS_CORE_MARGO_BASE_PATH";
+    const APPLICATION_DEPLOYMENTS_PATH: &str = "FLECS_CORE_MARGO_APPLICATION_DEPLOYMENTS_PATH";
+
+    impl MargoConfig {
+        pub fn from_var_reader(reader: &impl VarReader) -> Result<Option<Self>> {
+            let base_path = reader.read_path(BASE_PATH);
+            let application_deployments_path = reader.read_path(APPLICATION_DEPLOYMENTS_PATH);
+            Ok(Some(Self {
+                base_path,
+                application_deployments_path,
+            }))
         }
     }
 }

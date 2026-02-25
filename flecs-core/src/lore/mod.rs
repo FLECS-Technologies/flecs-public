@@ -41,6 +41,7 @@ pub type SecretLoreRef = Arc<dyn AsRef<SecretLore> + Sync + Send>;
 #[cfg(feature = "auth")]
 pub type AuthLoreRef = Arc<dyn AsRef<AuthLore> + Sync + Send>;
 pub type ProviderLoreRef = Arc<dyn AsRef<ProviderLore> + Sync + Send>;
+pub type MargoLoreRef = Arc<dyn AsRef<MargoLore> + Sync + Send>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Listener {
@@ -70,6 +71,7 @@ pub struct Lore {
     pub auth: AuthLore,
     pub provider: ProviderLore,
     pub system: SystemLore,
+    pub margo: MargoLore,
 }
 
 impl LoreRef<InstanceLore> for Lore {}
@@ -137,6 +139,12 @@ impl AsRef<SecretLore> for Lore {
 impl AsRef<ProviderLore> for Lore {
     fn as_ref(&self) -> &ProviderLore {
         &self.provider
+    }
+}
+
+impl AsRef<MargoLore> for Lore {
+    fn as_ref(&self) -> &MargoLore {
+        &self.margo
     }
 }
 
@@ -219,6 +227,12 @@ pub struct ProviderLore {
 }
 
 #[derive(Debug)]
+pub struct MargoLore {
+    pub base_path: PathBuf,
+    pub application_deployments_path: PathBuf,
+}
+
+#[derive(Debug)]
 pub struct SystemLore {
     pub core_sbom_spdx_path: PathBuf,
 }
@@ -284,10 +298,11 @@ impl Lore {
                 conf.provider.unwrap_or_default(),
                 &base_path,
             ),
+            system: SystemLore::from_conf_with_defaults(conf.system.unwrap_or_default()),
+            margo: MargoLore::from_conf_with_defaults(conf.margo.unwrap_or_default(), &base_path),
             tracing_filter,
             base_path,
             listener,
-            system: SystemLore::from_conf_with_defaults(conf.system.unwrap_or_default()),
         })
     }
 }
@@ -473,6 +488,21 @@ impl SystemLore {
             .unwrap_or_else(default::system::sbom_spdx_file_path_path);
         Self {
             core_sbom_spdx_path,
+        }
+    }
+}
+
+impl MargoLore {
+    pub fn from_conf_with_defaults(conf: conf::MargoConfig, base_path: &Path) -> Self {
+        let base_path = conf
+            .base_path
+            .unwrap_or_else(|| base_path.join(default::margo::BASE_DIRECTORY_NAME));
+        let application_deployments_path = conf.application_deployments_path.unwrap_or_else(|| {
+            base_path.join(default::margo::APPLICATION_DEPLOYMENTS_DIRECTORY_NAME)
+        });
+        Self {
+            base_path,
+            application_deployments_path,
         }
     }
 }
