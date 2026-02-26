@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tracing_subscriber::EnvFilter;
+use url::Url;
 
 pub mod conf;
 pub mod default;
@@ -228,6 +229,7 @@ pub struct ProviderLore {
 
 #[derive(Debug)]
 pub struct MargoLore {
+    pub url: Url,
     pub base_path: PathBuf,
     pub application_deployments_path: PathBuf,
 }
@@ -494,6 +496,7 @@ impl SystemLore {
 
 impl MargoLore {
     pub fn from_conf_with_defaults(conf: conf::MargoConfig, base_path: &Path) -> Self {
+        let url = conf.url.unwrap_or_else(default::margo::url);
         let base_path = conf
             .base_path
             .unwrap_or_else(|| base_path.join(default::margo::BASE_DIRECTORY_NAME));
@@ -501,6 +504,7 @@ impl MargoLore {
             base_path.join(default::margo::APPLICATION_DEPLOYMENTS_DIRECTORY_NAME)
         });
         Self {
+            url,
             base_path,
             application_deployments_path,
         }

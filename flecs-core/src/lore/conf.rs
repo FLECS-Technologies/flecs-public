@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use thiserror::Error;
 use tracing::debug;
+use url::Url;
 
 pub trait Mergeable {
     fn merge(&mut self, other: Self);
@@ -367,6 +368,8 @@ impl From<&SystemLore> for SystemConfig {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MargoConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<Url>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub base_path: Option<PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub application_deployments_path: Option<PathBuf>,
@@ -375,6 +378,7 @@ pub struct MargoConfig {
 impl From<&MargoLore> for MargoConfig {
     fn from(value: &MargoLore) -> Self {
         Self {
+            url: Some(value.url.clone()),
             base_path: Some(value.base_path.clone()),
             application_deployments_path: Some(value.application_deployments_path.clone()),
         }
@@ -527,6 +531,7 @@ impl Mergeable for ProviderConfig {
 
 impl Mergeable for MargoConfig {
     fn merge(&mut self, other: Self) {
+        self.url.trivial_merge(other.url);
         self.base_path.trivial_merge(other.base_path);
         self.application_deployments_path
             .trivial_merge(other.application_deployments_path);

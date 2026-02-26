@@ -448,14 +448,17 @@ pub mod margo {
     use crate::lore::conf::MargoConfig;
     use crate::relic::var::VarReader;
 
+    const WFM_URL: &str = "FLECS_CORE_MARGO_WFM_URL";
     const BASE_PATH: &str = "FLECS_CORE_MARGO_BASE_PATH";
     const APPLICATION_DEPLOYMENTS_PATH: &str = "FLECS_CORE_MARGO_APPLICATION_DEPLOYMENTS_PATH";
 
     impl MargoConfig {
         pub fn from_var_reader(reader: &impl VarReader) -> Result<Option<Self>> {
+            let url = reader.read_url(WFM_URL)?;
             let base_path = reader.read_path(BASE_PATH);
             let application_deployments_path = reader.read_path(APPLICATION_DEPLOYMENTS_PATH);
             Ok(Some(Self {
+                url,
                 base_path,
                 application_deployments_path,
             }))

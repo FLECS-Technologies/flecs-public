@@ -1,8 +1,9 @@
 use crate::enchantment::Enchantments;
 use crate::enchantment::quest_master::QuestMaster;
-use crate::fsm::ServerHandle;
+use crate::fsm::console_client::ConsoleClient;
+use crate::fsm::{ServerHandle, console_client};
 use crate::legacy::MigrateError;
-use crate::lore::Lore;
+use crate::lore::{Lore, MargoLoreRef};
 use crate::quest::{QuestResult, SyncQuest};
 use crate::relic::device::usb::{UsbDeviceReader, UsbDeviceReaderImpl};
 use crate::relic::floxy::Floxy;
@@ -18,7 +19,6 @@ use crate::sorcerer::licenso::{Licenso, LicensoImpl};
 use crate::sorcerer::mage_quester::{MageQuester, MageQuesterImpl};
 use crate::sorcerer::manifesto::{Manifesto, ManifestoImpl};
 #[cfg(feature = "auth")]
-use crate::sorcerer::providius::Providius;
 use crate::sorcerer::systemus::{Systemus, SystemusImpl};
 use crate::sorcerer::{FlecsSorcerers, Sorcerers};
 use crate::vault::Vault;
@@ -54,6 +54,7 @@ pub struct World<
     #[cfg(feature = "auth")]
     pub wall: Wall,
     pub lore: Arc<Lore>,
+    pub console_client: ConsoleClient,
 }
 
 pub type FlecsWorld = World<
@@ -259,13 +260,15 @@ impl<
         quest: SyncQuest,
         vault: Arc<Vault>,
         floxy: Arc<dyn Floxy>,
-        instancius: Arc<I>,
-        #[cfg(feature = "auth")] providius: Arc<dyn Providius>,
+        sorcerers: Sorcerers<APP, AUTH, I, L, Q, M, SYS, D, E, IMP>,
+        lore: MargoLoreRef,
+        console_client: ConsoleClient,
         #[cfg(feature = "auth")] watch: Arc<Watch>,
     ) -> crate::Result<()> {
         #[cfg(feature = "auth")]
         let auth_setup = {
             let vault = vault.clone();
+            let providius = sorcerers.providius.clone();
             quest
                 .lock()
                 .await
@@ -277,27 +280,65 @@ impl<
                 .await
                 .2
         };
-        let start = quest
-            .lock()
-            .await
-            .create_sub_quest("Start instances", |quest| async move {
-                instancius
-                    .start_all_instances_as_desired(quest, vault, floxy)
+        let onboarding = {
+            let cleric = sorcerers.cleric.clone();
+            let vault = vault.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest("Onboarding", |quest| async move {
+                    cleric.onboarding(quest, vault, lore).await
+                })
+                .await
+                .2
+        };
+        let start = {
+            let vault = vault.clone();
+            let instancius = sorcerers.instancius.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest("Start instances", |quest| async move {
+                    instancius
+                        .start_all_instances_as_desired(quest, vault, floxy)
+                        .await
+                })
+                .await
+                .2
+        };
+        match onboarding.await {
+            Ok(manifest_sources) if !manifest_sources.is_empty() => {
+                let appraiser = sorcerers.app_raiser.clone();
+                let installation = quest
+                    .lock()
                     .await
-            })
-            .await
-            .2;
+                    .create_sub_quest("Apply bundle from onboarding", |quest| async move {
+                        appraiser
+                            .install_application_deployments(
+                                quest,
+                                vault,
+                                manifest_sources,
+                                console_client,
+                            )
+                            .await
+                    })
+                    .await
+                    .2;
+                let _ = installation.await;
+            }
+            _ => {}
+        };
         let start = start.await;
         #[cfg(feature = "auth")]
         auth_setup.await?;
         start
     }
     async fn spin_up(&self) -> crate::Result<()> {
-        let instancius = self.sorcerers.instancius.clone();
-        #[cfg(feature = "auth")]
-        let providius = self.sorcerers.providius.clone();
+        let lore = self.lore.clone();
         let floxy = self.relics.floxy.clone();
         let vault = self.vault.clone();
+        let console_client = self.console_client.clone();
+        let sorcerers = self.sorcerers.clone();
         #[cfg(feature = "auth")]
         let watch = self.wall.watch.clone();
         self.enchantments
@@ -309,9 +350,9 @@ impl<
                     quest,
                     vault,
                     floxy,
-                    instancius,
-                    #[cfg(feature = "auth")]
-                    providius,
+                    sorcerers,
+                    lore,
+                    console_client,
                     #[cfg(feature = "auth")]
                     watch,
                 )
@@ -345,6 +386,7 @@ impl<
         vault.open().await;
         #[cfg(feature = "auth")]
         let wall = Self::build_wall(lore.clone()).await?;
+        let console_client = console_client::create_default(vault.clone(), lore.clone());
         let world = Self {
             server: crate::fsm::spawn_server(
                 sorcerers.clone(),
@@ -353,6 +395,7 @@ impl<
                 lore.clone(),
                 #[cfg(feature = "auth")]
                 wall.clone(),
+                console_client.clone(),
             )
             .await
             .map_err(|e| CreateError::SpinUp(e.to_string()))?,
@@ -363,6 +406,7 @@ impl<
             #[cfg(feature = "auth")]
             wall,
             lore,
+            console_client,
         };
         Ok(world)
     }

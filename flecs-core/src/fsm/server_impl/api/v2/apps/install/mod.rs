@@ -1,6 +1,6 @@
 use crate::enchantment::quest_master::QuestMaster;
 use crate::fsm::console_client::ConsoleClient;
-use crate::sorcerer::appraiser::AppRaiser;
+use crate::sorcerer::appraiser::{AppRaiser, ManifestSource};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::apps::AppsInstallPostResponse as PostResponse;
 use flecsd_axum_server::models;
@@ -20,7 +20,12 @@ pub async fn post<A: AppRaiser + 'static>(
         .await
         .schedule_quest(format!("Install {}", app_key), move |quest| async move {
             appraiser
-                .install_app(quest, vault, app_key, console_client)
+                .install_app(
+                    quest,
+                    vault,
+                    ManifestSource::AppKey(app_key),
+                    console_client,
+                )
                 .await
         })
         .await

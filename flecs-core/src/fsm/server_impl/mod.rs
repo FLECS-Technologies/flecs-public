@@ -97,9 +97,10 @@ impl<
         enchantments: Enchantments,
         relics: Relics<T, NET, NetDev>,
         #[cfg(feature = "auth")] wall: Wall,
+        console_client: ConsoleClient,
     ) -> Self {
         Self {
-            console_client: crate::fsm::console_client::create_default(vault.clone(), lore.clone()),
+            console_client,
             vault,
             lore,
             enchantments,

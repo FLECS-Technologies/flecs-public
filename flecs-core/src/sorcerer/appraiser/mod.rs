@@ -1,4 +1,5 @@
 mod appraiser_impl;
+
 pub use super::Result;
 use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::gem::manifest::AppManifest;
@@ -12,7 +13,24 @@ use async_trait::async_trait;
 use flecsd_axum_server::models::InstalledApp;
 #[cfg(test)]
 use mockall::automock;
+use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
 use std::sync::Arc;
+
+#[derive(Debug, Clone)]
+pub enum ManifestSource {
+    AppKey(AppKey),
+    Url(url::Url),
+}
+
+impl Display for ManifestSource {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::AppKey(key) => key.fmt(f),
+            Self::Url(url) => url.fmt(f),
+        }
+    }
+}
 
 #[cfg_attr(test, automock)]
 #[async_trait]
@@ -48,7 +66,7 @@ pub trait AppRaiser: Sorcerer {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        app_keys: Vec<AppKey>,
+        sources: Vec<ManifestSource>,
         config: ConsoleClient,
     ) -> Result<()>;
 
@@ -56,7 +74,24 @@ pub trait AppRaiser: Sorcerer {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        app_key: AppKey,
+        source: ManifestSource,
+        config: ConsoleClient,
+    ) -> Result<()>;
+
+    async fn install_application_deployments(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        source: HashMap<String, Vec<ManifestSource>>,
+        config: ConsoleClient,
+    ) -> Result<()>;
+
+    async fn install_application_deployment(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        id: String,
+        sources: Vec<ManifestSource>,
         config: ConsoleClient,
     ) -> Result<()>;
 }

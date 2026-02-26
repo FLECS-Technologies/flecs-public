@@ -2,6 +2,7 @@ pub mod console_client;
 mod server_impl;
 pub mod world;
 use crate::enchantment::Enchantments;
+use crate::fsm::console_client::ConsoleClient;
 use crate::lore::{Listener, Lore};
 use crate::relic::FlecsRelics;
 use crate::sorcerer::Sorcerers;
@@ -187,6 +188,7 @@ async fn create_service<
     vault: Arc<Vault>,
     lore: Arc<Lore>,
     #[cfg(feature = "auth")] wall: wall::Wall,
+    console_client: ConsoleClient,
 ) -> Result<IntoMakeServiceWithConnectInfo<Router, C>> {
     let server = server_impl::ServerImpl::new(
         vault.clone(),
@@ -196,6 +198,7 @@ async fn create_service<
         FlecsRelics::default(),
         #[cfg(feature = "auth")]
         wall.clone(),
+        console_client,
     )
     .await;
     let server = Arc::new(server);
@@ -459,6 +462,7 @@ pub async fn spawn_server<
     vault: Arc<Vault>,
     lore: Arc<Lore>,
     #[cfg(feature = "auth")] wall: wall::Wall,
+    console_client: ConsoleClient,
 ) -> Result<ServerHandle> {
     enum _Listener<T> {
         Socket(
@@ -485,6 +489,7 @@ pub async fn spawn_server<
                     lore,
                     #[cfg(feature = "auth")]
                     wall,
+                    console_client,
                 )
                 .await?,
             ),
@@ -504,6 +509,7 @@ pub async fn spawn_server<
                     lore,
                     #[cfg(feature = "auth")]
                     wall,
+                    console_client,
                 )
                 .await?,
             ),

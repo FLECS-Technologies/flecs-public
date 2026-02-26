@@ -1,5 +1,6 @@
 pub mod appraiser;
 pub mod authmancer;
+pub mod cleric;
 pub mod deploymento;
 pub mod exportius;
 pub mod importius;
@@ -14,6 +15,8 @@ pub mod systemus;
 pub use super::{Error, Result};
 use crate::sorcerer::appraiser::{AppRaiser, AppraiserImpl};
 use crate::sorcerer::authmancer::{Authmancer, AuthmancerImpl};
+use crate::sorcerer::cleric::Cleric;
+use crate::sorcerer::cleric::cleric_impl::ClericImpl;
 use crate::sorcerer::deploymento::{Deploymento, DeploymentoImpl};
 use crate::sorcerer::exportius::{Exportius, ExportiusImpl};
 use crate::sorcerer::importius::{Importius, ImportiusImpl};
@@ -53,6 +56,7 @@ impl Default for FlecsSorcerers {
             exportius: Default::default(),
             importius: Default::default(),
             providius: Arc::new(ProvidiusImpl),
+            cleric: Arc::new(ClericImpl),
         }
     }
 }
@@ -80,6 +84,7 @@ pub struct Sorcerers<
     pub exportius: Arc<E>,
     pub importius: Arc<IMP>,
     pub providius: Arc<dyn Providius>,
+    pub cleric: Arc<dyn Cleric>,
 }
 
 impl<
@@ -108,6 +113,7 @@ impl<
             exportius: self.exportius.clone(),
             importius: self.importius.clone(),
             providius: self.providius.clone(),
+            cleric: self.cleric.clone(),
         }
     }
 }
@@ -141,6 +147,7 @@ impl Default for MockSorcerers {
             exportius: Arc::new(crate::sorcerer::exportius::MockExportius::default()),
             importius: Arc::new(crate::sorcerer::importius::MockImportius::default()),
             providius: Arc::new(crate::sorcerer::providius::MockProvidius::default()),
+            cleric: Arc::new(crate::sorcerer::cleric::MockCleric::default()),
         }
     }
 }

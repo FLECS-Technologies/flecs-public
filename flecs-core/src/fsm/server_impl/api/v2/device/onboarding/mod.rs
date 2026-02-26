@@ -1,6 +1,6 @@
 use crate::enchantment::quest_master::QuestMaster;
 use crate::fsm::console_client::ConsoleClient;
-use crate::sorcerer::appraiser::AppRaiser;
+use crate::sorcerer::appraiser::{AppRaiser, ManifestSource};
 use crate::vault::Vault;
 use flecsd_axum_server::apis::device::DeviceOnboardingPostResponse as PostResponse;
 use flecsd_axum_server::models;
@@ -20,15 +20,15 @@ pub async fn post<A: AppRaiser + 'static>(
             "No apps to install given (field 'apps' is empty)".to_string(),
         ));
     }
-    let app_keys = request
+    let app_sources = request
         .apps
         .into_iter()
         .filter_map(|app| {
             if let Some(version) = app.version {
-                Some(crate::vault::pouch::AppKey {
+                Some(ManifestSource::AppKey(crate::vault::pouch::AppKey {
                     name: app.name,
                     version,
-                })
+                }))
             } else {
                 warn!(
                     "Skip installing newest version of app {}, not implemented yet",
@@ -45,7 +45,7 @@ pub async fn post<A: AppRaiser + 'static>(
             "Install apps via device onboarding".to_string(),
             move |quest| async move {
                 appraiser
-                    .install_apps(quest, vault, app_keys, console_client)
+                    .install_apps(quest, vault, app_sources, console_client)
                     .await
             },
         )

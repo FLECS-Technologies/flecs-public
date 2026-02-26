@@ -1,4 +1,4 @@
-use super::AppRaiser;
+use super::{AppRaiser, ManifestSource};
 use crate::fsm::console_client::ConsoleClient;
 use crate::jeweler::app::{AppStatus, Token};
 use crate::jeweler::gem::app::App;
@@ -13,6 +13,7 @@ use async_trait::async_trait;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::TryFutureExt;
 use futures_util::future::join_all;
+use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
 use tracing::error;
@@ -185,66 +186,28 @@ impl AppRaiser for AppraiserImpl {
         manifest: AppManifest,
         config: ConsoleClient,
     ) -> anyhow::Result<()> {
-        let app_key = manifest.key().clone();
-        let result = quest
-            .lock()
-            .await
-            .create_sub_quest("Create app".to_string(), |_quest| {
-                set_manifest_and_desired_or_create_app(
-                    vault.clone(),
-                    manifest.clone(),
-                    app_key.clone(),
-                    AppStatus::Installed,
-                )
-            })
-            .await
-            .2;
-        result.await?;
-        let result = quest
-            .lock()
-            .await
-            .create_sub_quest("Install app".to_string(), |quest| {
-                install_existing_app(quest, vault.clone(), app_key, config)
-            })
-            .await
-            .2;
-        match result.await {
-            Err(e) => Err(e),
-            Ok(()) => {
-                let result = quest
-                    .lock()
-                    .await
-                    .create_sub_quest(
-                        format!("Replace manifest for {}", manifest.key()),
-                        |quest| spell::manifest::replace_manifest(quest, vault, manifest),
-                    )
-                    .await
-                    .2;
-                result.await?;
-                Ok(())
-            }
-        }
+        install_app_from_manifest(quest, vault, manifest, config).await
     }
 
     async fn install_apps(
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        app_keys: Vec<AppKey>,
+        sources: Vec<ManifestSource>,
         config: ConsoleClient,
     ) -> anyhow::Result<()> {
         let mut results = Vec::new();
         let mut keys = Vec::new();
-        for app_key in app_keys {
+        for source in sources {
             let config = config.clone();
             let vault = vault.clone();
-            keys.push(app_key.clone());
+            keys.push(source.clone());
             let result = quest
                 .lock()
                 .await
-                .create_sub_quest(format!("Install app {app_key}"), move |quest| async move {
+                .create_sub_quest(format!("Install app {source}"), move |quest| async move {
                     Self::default()
-                        .install_app(quest, vault, app_key, config)
+                        .install_app(quest, vault, source, config)
                         .await
                 })
                 .await
@@ -272,26 +235,169 @@ impl AppRaiser for AppraiserImpl {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        app_key: AppKey,
+        source: ManifestSource,
         config: ConsoleClient,
     ) -> anyhow::Result<()> {
-        let manifest = quest
+        install_app(quest, vault, source, config).await?;
+        Ok(())
+    }
+
+    async fn install_application_deployments(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        source: HashMap<String, Vec<ManifestSource>>,
+        config: ConsoleClient,
+    ) -> anyhow::Result<()> {
+        let mut sub_quests = Vec::new();
+        for (id, manifest_sources) in source.into_iter() {
+            let sub_quest = quest
+                .lock()
+                .await
+                .create_sub_quest(format!("Install application deployment {id}"), |quest| {
+                    install_application_deployment(
+                        quest,
+                        vault.clone(),
+                        id,
+                        manifest_sources,
+                        config.clone(),
+                    )
+                })
+                .await
+                .2;
+            sub_quests.push(sub_quest);
+        }
+        let results = join_all(sub_quests).await;
+        let total = results.len();
+        let failed = results.into_iter().filter(Result::is_err).count();
+        if failed == 0 {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!(
+                "Failed to install {} application deployments out of {}",
+                failed,
+                total,
+            ))
+        }
+    }
+
+    async fn install_application_deployment(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        id: String,
+        sources: Vec<ManifestSource>,
+        config: ConsoleClient,
+    ) -> anyhow::Result<()> {
+        install_application_deployment(quest, vault, id, sources, config).await
+    }
+}
+
+async fn install_application_deployment(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    id: String,
+    sources: Vec<ManifestSource>,
+    config: ConsoleClient,
+) -> anyhow::Result<()> {
+    // TODO: Post status updates
+    let mut sub_quests = Vec::new();
+    for source in sources.into_iter() {
+        let sub_quest = quest
             .lock()
             .await
-            .create_sub_quest("Obtain manifest".to_string(), |_quest| {
-                download_manifest(vault.clone(), app_key.clone(), config.clone())
+            .create_sub_quest(format!("Install app {source}"), |quest| {
+                install_app(quest, vault.clone(), source, config.clone())
             })
             .await
             .2;
-        let manifest = manifest.await?;
-        self.install_app_from_manifest(quest, vault, manifest, config)
-            .await
+        sub_quests.push(sub_quest);
     }
+    let results = join_all(sub_quests).await;
+    let total = results.len();
+    let installed = results.into_iter().filter_map(Result::ok).count();
+    let failed = total - installed;
+    if failed == 0 {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!(
+            "Failed to install {} apps out of {} from {id}",
+            failed,
+            total,
+        ))
+    }
+}
+
+async fn install_app_from_manifest(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    manifest: AppManifest,
+    config: ConsoleClient,
+) -> anyhow::Result<()> {
+    let app_key = manifest.key().clone();
+    let result = quest
+        .lock()
+        .await
+        .create_sub_quest("Create app".to_string(), |_quest| {
+            set_manifest_and_desired_or_create_app(
+                vault.clone(),
+                manifest.clone(),
+                app_key.clone(),
+                AppStatus::Installed,
+            )
+        })
+        .await
+        .2;
+    result.await?;
+    let result = quest
+        .lock()
+        .await
+        .create_sub_quest("Install app".to_string(), |quest| {
+            install_existing_app(quest, vault.clone(), app_key, config)
+        })
+        .await
+        .2;
+    match result.await {
+        Err(e) => Err(e),
+        Ok(()) => {
+            let result = quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!("Replace manifest for {}", manifest.key()),
+                    |quest| spell::manifest::replace_manifest(quest, vault, manifest),
+                )
+                .await
+                .2;
+            result.await?;
+            Ok(())
+        }
+    }
+}
+
+async fn install_app(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    source: ManifestSource,
+    config: ConsoleClient,
+) -> anyhow::Result<AppKey> {
+    let manifest = quest
+        .lock()
+        .await
+        .create_sub_quest("Obtain manifest".to_string(), |_quest| {
+            download_manifest(vault.clone(), source, config.clone())
+        })
+        .await
+        .2;
+    let manifest = manifest.await?;
+    let key = manifest.key().clone();
+    install_app_from_manifest(quest, vault, manifest, config).await?;
+    Ok(key)
 }
 
 async fn download_manifest(
     vault: Arc<Vault>,
-    app_key: AppKey,
+    source: ManifestSource,
     config: ConsoleClient,
 ) -> anyhow::Result<AppManifest> {
     let session_id = vault
@@ -300,9 +406,15 @@ async fn download_manifest(
         .get_session_id()
         .id
         .unwrap_or_default();
-    let manifest =
-        spell::manifest::download_manifest(config, &session_id, &app_key.name, &app_key.version)
-            .await?;
+    let manifest = match source {
+        ManifestSource::AppKey(app_key) => {
+            spell::manifest::download_manifest(config, &session_id, &app_key.name, &app_key.version)
+                .await?
+        }
+        ManifestSource::Url(url) => {
+            spell::manifest::download_manifest_from_url(config, &session_id, url).await?
+        }
+    };
     let manifest = flecs_app_manifest::AppManifest::try_from(manifest)?;
     let manifest = AppManifest::try_from(manifest)?;
     Ok(manifest)
@@ -830,7 +942,7 @@ pub mod tests {
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = manifest_mock_ok(&mut server, manifest.clone(), &key).await;
         assert_eq!(
-            download_manifest(vault.clone(), key, config,)
+            download_manifest(vault.clone(), ManifestSource::AppKey(key), config,)
                 .await
                 .unwrap(),
             manifest
@@ -847,7 +959,11 @@ pub mod tests {
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mock = manifest_mock_err(&mut server, 500, &key).await;
-        assert!(download_manifest(vault, key, config).await.is_err());
+        assert!(
+            download_manifest(vault, ManifestSource::AppKey(key), config)
+                .await
+                .is_err()
+        );
         mock.assert();
     }
 
@@ -857,6 +973,7 @@ pub mod tests {
             name: NO_MANIFEST_APP_NAME.to_string(),
             version: NO_MANIFEST_APP_VERSION.to_string(),
         };
+        let source = ManifestSource::AppKey(key.clone());
         let manifest = no_manifest();
         let vault = create_test_vault(HashMap::new(), HashMap::new(), None);
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
@@ -865,7 +982,7 @@ pub mod tests {
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_app(quest.clone(), vault, key, config)
+                .install_app(quest.clone(), vault, source, config)
                 .await
                 .is_err()
         );
@@ -887,6 +1004,7 @@ pub mod tests {
             name: NO_MANIFEST_APP_NAME.to_string(),
             version: NO_MANIFEST_APP_VERSION.to_string(),
         };
+        let source = ManifestSource::AppKey(key.clone());
         let manifest = editor_manifest();
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let mut deployment = MockedDockerDeployment::new();
@@ -911,7 +1029,7 @@ pub mod tests {
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_app(quest.clone(), vault, key, config)
+                .install_app(quest.clone(), vault, source, config)
                 .await
                 .is_ok()
         );
@@ -1073,15 +1191,17 @@ pub mod tests {
         let token_mock = token_mock_ok_called(&mut server, app_count).await;
         let mut manifest_mocks = Vec::new();
         let mut keys = Vec::new();
+        let mut sources = Vec::new();
         for manifest in manifests.iter() {
             manifest_mocks
                 .push(manifest_mock_ok(&mut server, manifest.clone(), manifest.key()).await);
             keys.push(manifest.key().clone());
+            sources.push(ManifestSource::AppKey(manifest.key().clone()));
         }
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_apps(quest.clone(), vault.clone(), keys.clone(), config)
+                .install_apps(quest.clone(), vault.clone(), sources, config)
                 .await
                 .is_ok()
         );
@@ -1160,20 +1280,20 @@ pub mod tests {
         let (mut server, config) = crate::tests::create_test_server_and_config().await;
         let token_mock = token_mock_ok_called(&mut server, installed_app_count).await;
         let mut manifest_mocks = Vec::new();
-        let mut keys = Vec::new();
+        let mut sources = Vec::new();
         for manifest in installed_manifests.iter() {
             manifest_mocks
                 .push(manifest_mock_ok(&mut server, manifest.clone(), manifest.key()).await);
-            keys.push(manifest.key().clone());
+            sources.push(ManifestSource::AppKey(manifest.key().clone()));
         }
         for manifest in failing_manifests.iter() {
             manifest_mocks.push(manifest_mock_err(&mut server, 404, manifest.key()).await);
-            keys.push(manifest.key().clone());
+            sources.push(ManifestSource::AppKey(manifest.key().clone()));
         }
         let quest = Quest::new_synced("TestQuest".to_string());
         assert!(
             AppraiserImpl::default()
-                .install_apps(quest.clone(), vault.clone(), keys, config)
+                .install_apps(quest.clone(), vault.clone(), sources, config)
                 .await
                 .is_err()
         );

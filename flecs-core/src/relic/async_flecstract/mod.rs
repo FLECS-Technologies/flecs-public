@@ -1,8 +1,14 @@
 pub use super::Result;
 use async_compression::tokio::bufread::GzipDecoder;
 use flecstract::tar::{archive, archive_single_file_as, extract, extract_single_file_as};
+use futures::Stream;
+use futures_util::StreamExt;
+use std::collections::HashMap;
+use std::error::Error;
 use std::path::{Path, PathBuf};
-use tokio::io::BufReader;
+use tokio::io::{AsyncReadExt, BufReader};
+use tokio_util::bytes;
+use tokio_util::io::StreamReader;
 
 pub async fn archive_to_file(src: &Path, dst: &Path, follow_symlinks: bool) -> Result<()> {
     let dst = dst.to_path_buf();
@@ -58,6 +64,25 @@ pub async fn decompress_from_file(src: impl Into<PathBuf>, dst: impl Into<PathBu
     let mut archive = tokio_tar::Archive::new(src);
     archive.unpack(dst).await?;
     Ok(())
+}
+
+pub async fn decompress_in_memory<E: Error + Send + Sync + 'static>(
+    bytes: impl Stream<Item = Result<bytes::Bytes, E>> + Unpin,
+) -> Result<HashMap<PathBuf, Vec<u8>>> {
+    let bytes = bytes.map(|res| res.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e)));
+    let reader = StreamReader::new(bytes);
+    let src = BufReader::new(reader);
+    let src = GzipDecoder::new(src);
+    let mut archive = tokio_tar::Archive::new(src);
+    let mut files = HashMap::new();
+    let mut entries = archive.entries()?;
+    while let Some(entry) = entries.next().await {
+        let mut entry = entry?;
+        let mut buffer = Vec::new();
+        entry.read_to_end(&mut buffer).await?;
+        files.insert(entry.path()?.to_path_buf(), buffer);
+    }
+    Ok(files)
 }
 
 pub async fn extract_from_memory(src: Vec<u8>, dst: &Path) -> Result<()> {

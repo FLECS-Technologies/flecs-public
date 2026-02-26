@@ -11,6 +11,7 @@ use flecs_console_client::apis::default_api::{
     GetApiV2ManifestsAppVersionSuccess, get_api_v2_manifests_app_version,
 };
 use http::StatusCode;
+use std::str::FromStr;
 use std::sync::Arc;
 
 pub async fn download_manifest(
@@ -48,6 +49,56 @@ pub async fn download_manifest(
         }
         GetApiV2ManifestsAppVersionSuccess::UnknownValue(v) => Err(anyhow!("Unknown value {v}")),
     }
+}
+
+/// Takes a generic json value and extracts data if it has the console format (i.e. has property
+/// data). If not the given json value is returned as is, as the response is likely not from the
+/// console and the data is contained directly in the json value.
+fn extract_console_data(mut response: serde_json::Value) -> Result<serde_json::Value> {
+    if let serde_json::Value::Object(properties) = &mut response {
+        if let Some(data) = properties.remove("data") {
+            return Ok(data);
+        }
+    }
+    Ok(response)
+}
+
+pub async fn download_manifest_from_url(
+    console_configuration: ConsoleClient,
+    x_session_id: &str,
+    url: url::Url,
+) -> Result<AppManifestVersion> {
+    let console_url = url::Url::from_str(&console_configuration.base_path)?;
+    let request = match (url.host(), console_url.host()) {
+        (Some(host), Some(console_host))
+            if host == console_host && url.scheme() == &http::uri::Scheme::HTTPS =>
+        {
+            console_configuration
+                .client
+                .request(http::Method::GET, url)
+                .header("X-Session-Id", x_session_id)
+                .query(&[(
+                    "max_manifest_version",
+                    lore::MAX_SUPPORTED_APP_MANIFEST_VERSION,
+                )])
+                .build()?
+        }
+        _ => console_configuration.client.get(url).build()?,
+    };
+    let response = console_configuration.client.execute(request).await?;
+    let status = response.status();
+    let response = response.text().await;
+    anyhow::ensure!(
+        status == StatusCode::OK,
+        "Unexpected response (status {}): {}",
+        status,
+        response.unwrap_or_default()
+    );
+    let response = response?;
+    let response: serde_json::Value = serde_json::from_str(&response)?;
+    let data = extract_console_data(response)?;
+    let manifest: AppManifestVersion = serde_json::from_value(data)?;
+    Ok(manifest)
 }
 
 pub async fn erase_manifest_if_unused(vault: Arc<Vault>, app_key: AppKey) -> Option<AppManifest> {
@@ -126,26 +177,26 @@ mod tests {
     use flecs_app_manifest::generated::manifest_3_2_0::{
         App as OtherApp, FlecsAppManifest, Image, Single, Version,
     };
+    use serde_json::json;
     use std::collections::HashMap;
     use std::str::FromStr;
 
-    #[tokio::test]
-    async fn download_valid_manifest_test() {
-        let (mut server, config) = crate::tests::create_test_server_and_config().await;
-        const BODY: &str = r#"{
-    "statusCode": 200,
-    "statusText": "OK",
-    "data": {
-        "app": "tech.flecs.flunder",
-        "_schemaVersion": "3.2.0",
-        "version": "3.0.0",
-        "image": "flecs.azurecr.io/tech.flecs.flunder"
+    const VALID_APP_NAME: &str = "tech.flecs.flunder";
+    const VALID_APP_VERSION: &str = "3.0.0";
+    const VALID_APP_IMAGE: &str = "flecs.azurecr.io/tech.flecs.flunder";
+
+    fn valid_manifest_json() -> serde_json::Value {
+        json!({
+            "app": VALID_APP_NAME,
+            "_schemaVersion": "3.2.0",
+            "version": VALID_APP_VERSION,
+            "image": VALID_APP_IMAGE
+        })
     }
-}"#;
-        const APP_NAME: &str = "tech.flecs.flunder";
-        const APP_VERSION: &str = "3.0.0";
-        let expected_result = AppManifestVersion::V3_2_0(FlecsAppManifest::Single(Single {
-            app: OtherApp::from_str(APP_NAME).unwrap(),
+
+    fn valid_manifest() -> AppManifestVersion {
+        AppManifestVersion::V3_2_0(FlecsAppManifest::Single(Single {
+            app: OtherApp::from_str(VALID_APP_NAME).unwrap(),
             args: None,
             capabilities: None,
             conffiles: None,
@@ -154,7 +205,7 @@ mod tests {
             editors: None,
             env: None,
             hostname: None,
-            image: Image::from_str("flecs.azurecr.io/tech.flecs.flunder").unwrap(),
+            image: Image::from_str(VALID_APP_IMAGE).unwrap(),
             interactive: None,
             labels: None,
             minimum_flecs_version: None,
@@ -164,19 +215,80 @@ mod tests {
             recommends: None,
             revision: None,
             schema: None,
-            version: Version::from_str(APP_VERSION).unwrap(),
+            version: Version::from_str(VALID_APP_VERSION).unwrap(),
             volumes: None,
-        }));
-        let path: String =
-            format!("/api/v2/manifests/{APP_NAME}/{APP_VERSION}?max_manifest_version=3.0.0");
+        }))
+    }
+
+    #[tokio::test]
+    async fn download_valid_manifest_test() {
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
+        let body = json!({
+            "statusCode": 200,
+            "statusText": "OK",
+            "data": valid_manifest_json()
+        });
+        let body = serde_json::to_string(&body).unwrap();
+        let expected_result = valid_manifest();
+        let path: String = format!(
+            "/api/v2/manifests/{VALID_APP_NAME}/{VALID_APP_VERSION}?max_manifest_version=3.0.0"
+        );
         let mock = server
             .mock("GET", path.as_str())
             .with_status(200)
             .with_header("content-type", "application/json")
-            .with_body(BODY)
+            .with_body(body)
             .create_async()
             .await;
-        let result = download_manifest(config, "", APP_NAME, APP_VERSION).await;
+        let result = download_manifest(config, "", VALID_APP_NAME, VALID_APP_VERSION).await;
+        mock.assert();
+        assert_eq!(result.unwrap(), expected_result);
+    }
+
+    #[tokio::test]
+    async fn download_valid_manifest_from_console_url() {
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
+        let body = json!({
+            "statusCode": 200,
+            "statusText": "OK",
+            "data": valid_manifest_json()
+        });
+        let body = serde_json::to_string(&body).unwrap();
+        const PATH: &str = "/some/url/to/manifest";
+        const SESSION_ID: &str = "1234";
+        let expected_result = valid_manifest();
+        let url = format!("{}{PATH}", server.url());
+        let mock = server
+            .mock("GET", PATH)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(body)
+            .create_async()
+            .await;
+        let result =
+            download_manifest_from_url(config, SESSION_ID, url::Url::parse(&url).unwrap()).await;
+        mock.assert();
+        assert_eq!(result.unwrap(), expected_result);
+    }
+
+    #[tokio::test]
+    async fn download_valid_manifest_from_url() {
+        let (mut server, config) = crate::tests::create_test_server_and_config().await;
+        let body = valid_manifest_json();
+        let body = serde_json::to_string(&body).unwrap();
+        const PATH: &str = "/some/url/to/manifest";
+        const SESSION_ID: &str = "1234";
+        let expected_result = valid_manifest();
+        let url = format!("{}{PATH}", server.url());
+        let mock = server
+            .mock("GET", PATH)
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(body)
+            .create_async()
+            .await;
+        let result =
+            download_manifest_from_url(config, SESSION_ID, url::Url::parse(&url).unwrap()).await;
         mock.assert();
         assert_eq!(result.unwrap(), expected_result);
     }
