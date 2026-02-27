@@ -62,40 +62,83 @@ impl Cleric for ClericImpl {
                 .build(),
             ..Configuration::default()
         };
-        let cert = tokio::fs::read_to_string(lore.base_path.join("cert.pem")).await?;
-        debug!("Certificate file read");
-        let key = tokio::fs::read_to_string(lore.base_path.join("key.pem")).await?;
-        debug!("Key file read");
-        let identity = reqwest::Identity::from_pkcs8_pem(cert.as_bytes(), key.as_bytes())?;
-        debug!("Identity constructed from certificate and key file");
-        let certificate = api_v1_onboarding_certificate_get(&config)
-            .await?
-            .certificate
-            .unwrap();
-        debug!(
-            "Received certificate {certificate} from {}",
-            config.base_path
-        );
-        let certificate = base64::prelude::BASE64_STANDARD.decode(certificate)?;
-        debug!("Decoded base64 of {}", config.base_path);
-        let certificate = reqwest::Certificate::from_der(&certificate)?;
-        debug!("Constructed certificate of {}", config.base_path);
+        let cert_and_identity = {
+            let base_path = lore.base_path.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    "Construct identity from certificate and private key",
+                    |_quest| async move {
+                        let cert = tokio::fs::read_to_string(base_path.join("cert.pem")).await?;
+                        debug!("Certificate file read");
+                        let key = tokio::fs::read_to_string(base_path.join("key.pem")).await?;
+                        debug!("Key file read");
+                        let identity =
+                            reqwest::Identity::from_pkcs8_pem(cert.as_bytes(), key.as_bytes())?;
+                        Result::<_, anyhow::Error>::Ok((cert, identity))
+                    },
+                )
+                .await
+                .2
+        };
+        let remote_certificate = {
+            let config = config.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!("Receive certificate for {}", config.base_path),
+                    |_quest| async move {
+                        let certificate = api_v1_onboarding_certificate_get(&config)
+                            .await?
+                            .certificate
+                            .unwrap();
+                        debug!(
+                        "Received certificate {certificate} from {}",
+                        config.base_path
+                    );
+                        let certificate = base64::prelude::BASE64_STANDARD.decode(certificate)?;
+                        debug!("Decoded base64 of {}", config.base_path);
+                        reqwest::Certificate::from_der(&certificate).map_err(anyhow::Error::from)
+                    },
+                )
+                .await
+                .2
+        };
+        let remote_certificate = remote_certificate.await?;
+        let (cert, identity) = cert_and_identity.await?;
         let client = reqwest::Client::builder()
-            .tls_certs_merge([certificate])
+            .tls_certs_merge([remote_certificate])
             .identity(identity)
             .build()?;
         let client = ClientBuilder::new(client).with(LoggingMiddleware).build();
         let config = Configuration { client, ..config };
         debug!("Constructed client for {}", config.base_path);
-        let client_id = api_v1_onboarding_post(
-            &config,
-            ApiV1OnboardingPostRequest {
-                public_certificate: Some(cert),
-            },
-        )
-        .await?
-        .client_id
-        .unwrap();
+
+        let client_id = {
+            let config = config.clone();
+            quest
+                .lock()
+                .await
+                .create_sub_quest(
+                    format!("Register device at {}", config.base_path),
+                    |_quest| async move {
+                        api_v1_onboarding_post(
+                            &config,
+                            ApiV1OnboardingPostRequest {
+                                public_certificate: Some(cert),
+                            },
+                        )
+                            .await?
+                            .client_id
+                            .ok_or_else(|| anyhow::anyhow!("Received no client id"))
+                    },
+                )
+                .await
+                .2
+        };
+        let client_id = client_id.await?;
         debug!(
             "Onboarding complete, received client_id {client_id} for {}",
             config.base_path
