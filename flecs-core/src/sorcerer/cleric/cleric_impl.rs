@@ -3,17 +3,19 @@ use crate::quest::SyncQuest;
 use crate::relic;
 use crate::sorcerer::Sorcerer;
 use crate::sorcerer::appraiser::ManifestSource;
-use crate::sorcerer::cleric::Cleric;
+use crate::sorcerer::cleric::{Cleric, Client};
 use crate::vault::Vault;
 use crate::vault::pouch::Pouch;
 use async_trait::async_trait;
 use margo_types::application_deployment::{ApplicationDeployment, DeploymentProfile};
 use margo_workload_management_api_client_rs::apis::configuration::Configuration;
-use margo_workload_management_api_client_rs::apis::default_api::{
-    api_v1_clients_client_id_bundles_digest_get, api_v1_clients_client_id_deployments_get,
-};
+use margo_workload_management_api_client_rs::apis::default_api::{api_v1_clients_client_id_bundles_digest_get, api_v1_clients_client_id_capabilities_post, api_v1_clients_client_id_deployments_get, api_v1_onboarding_certificate_get, api_v1_onboarding_post};
+use margo_workload_management_api_client_rs::models::ApiV1OnboardingPostRequest;
+use reqwest_middleware::ClientBuilder;
 use std::collections::HashMap;
 use std::sync::Arc;
+use base64::Engine;
+use margo_workload_management_api_client_rs::models;
 use tracing::{debug, warn};
 
 pub struct ClericImpl;
@@ -22,33 +24,73 @@ impl Sorcerer for ClericImpl {}
 
 #[async_trait]
 impl Cleric for ClericImpl {
-    async fn onboarding(
-        &self,
-        quest: SyncQuest,
-        vault: Arc<Vault>,
-        lore: MargoLoreRef,
-    ) -> anyhow::Result<HashMap<String, Vec<ManifestSource>>> {
+    async fn onboarding(&self, quest: SyncQuest, lore: MargoLoreRef) -> anyhow::Result<Client> {
         // TODO: Use quest system
-        let base_path = lore
-            .as_ref()
-            .as_ref()
-            .url
-            .to_string()
-            .trim_end_matches('/')
-            .to_string();
+        let lore = lore.as_ref().as_ref();
+        let base_path = lore.url.to_string().trim_end_matches('/').to_string();
         let config = Configuration {
             base_path,
             ..Configuration::default()
         };
-        // TODO: Complete margo onboarding
-        let client_id = "flecs-core";
+        let cert = tokio::fs::read_to_string(lore.base_path.join("cert.pem")).await?;
+        debug!("Certificate file read");
+        let key = tokio::fs::read_to_string(lore.base_path.join("key.pem")).await?;
+        debug!("Key file read");
+        let identity = reqwest::Identity::from_pkcs8_pem(cert.as_bytes(), key.as_bytes())?;
+        debug!("Identity constructed from certificate and key file");
+        let certificate = api_v1_onboarding_certificate_get(&config)
+            .await?
+            .certificate
+            .unwrap();
+        debug!("Received certificate {certificate} from {}", config.base_path);
+        let certificate = base64::prelude::BASE64_STANDARD.decode(certificate)?;
+        debug!("Decoded base64 of {}", config.base_path);
+        let certificate = reqwest::Certificate::from_der(&certificate)?;
+        debug!("Constructed certificate of {}", config.base_path);
+        let client = reqwest::Client::builder()
+            .tls_certs_merge([certificate])
+            .identity(identity)
+            .build()?;
+        let client = ClientBuilder::new(client).build();
+        let config = Configuration {
+            client,
+            ..config
+        };
+        debug!("Constructed client for {}", config.base_path);
+        let client_id = api_v1_onboarding_post(&config, ApiV1OnboardingPostRequest {
+            public_certificate: Some(cert),
+        })
+            .await?
+            .client_id
+            .unwrap();
+        debug!("Onboarding complete, received client_id {client_id} for {}", config.base_path);
+        let client = Client {
+            id: client_id,
+            config,
+        };
+        if let Err(e) = api_v1_clients_client_id_capabilities_post(&client.config, &client.id, models::DeviceCapabilitiesManifest {
+            api_version: "device.margo.org/v1alpha1".to_string(),
+            kind: Default::default(),
+            properties: Box::new(models::DeviceCapabilitiesManifestProperties::default()),
+        }).await {
+            warn!("Failed to post capabilities to {}: {e}", client.config.base_path);
+        }
+        Ok(client)
+    }
+
+    async fn receive_bundle(
+        &self,
+        quest: SyncQuest,
+        vault: Arc<Vault>,
+        client: Arc<Client>,
+    ) -> anyhow::Result<HashMap<String, Vec<ManifestSource>>> {
         let deployments = {
-            let config = config.clone();
+            let client = client.clone();
             quest
                 .lock()
                 .await
                 .create_sub_quest("Query deployments", |_quest| async move {
-                    api_v1_clients_client_id_deployments_get(&config, client_id, None, None).await
+                    api_v1_clients_client_id_deployments_get(&client.config, &client.id, None, None).await
                 })
                 .await
                 .2
@@ -62,12 +104,11 @@ impl Cleric for ClericImpl {
             .digest
             .ok_or_else(|| anyhow::anyhow!("No bundle digest present"))?;
         let application_deployments = {
-            let config = config.clone();
             quest
                 .lock()
                 .await
-                .create_sub_quest(format!("Get bundle {digest}"), |_quest| {
-                    get_bundle(digest, client_id.to_string(), config)
+                .create_sub_quest(format!("Get bundle {digest}"), move |_quest| {
+                    get_bundle(digest, client)
                 })
                 .await
                 .2
@@ -98,11 +139,10 @@ impl Cleric for ClericImpl {
 
 async fn get_bundle(
     bundle_digest: String,
-    client_id: String,
-    config: Configuration,
+    client: Arc<Client>,
 ) -> anyhow::Result<HashMap<String, ApplicationDeployment>> {
     let bundle_data =
-        api_v1_clients_client_id_bundles_digest_get(&config, &client_id, &bundle_digest, None)
+        api_v1_clients_client_id_bundles_digest_get(&client.config, &client.id, &bundle_digest, None)
             .await?;
     let application_deployments: HashMap<String, ApplicationDeployment> =
         relic::async_flecstract::decompress_in_memory(bundle_data.bytes_stream())

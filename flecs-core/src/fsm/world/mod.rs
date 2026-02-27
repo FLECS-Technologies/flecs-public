@@ -282,12 +282,12 @@ impl<
         };
         let onboarding = {
             let cleric = sorcerers.cleric.clone();
-            let vault = vault.clone();
+            let lore = lore.clone();
             quest
                 .lock()
                 .await
                 .create_sub_quest("Onboarding", |quest| async move {
-                    cleric.onboarding(quest, vault, lore).await
+                    cleric.onboarding(quest, lore).await
                 })
                 .await
                 .2
@@ -306,28 +306,44 @@ impl<
                 .await
                 .2
         };
-        match onboarding.await {
-            Ok(manifest_sources) if !manifest_sources.is_empty() => {
-                let appraiser = sorcerers.app_raiser.clone();
-                let installation = quest
+        if let Ok(client) = onboarding.await {
+            let manifest_sources = {
+                let cleric = sorcerers.cleric.clone();
+                let client = Arc::new(client);
+                let vault = vault.clone();
+                quest
                     .lock()
                     .await
-                    .create_sub_quest("Apply bundle from onboarding", |quest| async move {
-                        appraiser
-                            .install_application_deployments(
-                                quest,
-                                vault,
-                                manifest_sources,
-                                console_client,
-                            )
-                            .await
+                    .create_sub_quest("Receive bundle", |quest| async move {
+                        cleric.receive_bundle(quest, vault, client).await
                     })
                     .await
-                    .2;
-                let _ = installation.await;
-            }
-            _ => {}
-        };
+                    .2
+            };
+            match manifest_sources.await {
+                Ok(manifest_sources) if !manifest_sources.is_empty() => {
+                    let appraiser = sorcerers.app_raiser.clone();
+                    let installation = quest
+                        .lock()
+                        .await
+                        .create_sub_quest("Apply bundle from onboarding", |quest| async move {
+                            appraiser
+                                .install_application_deployments(
+                                    quest,
+                                    vault,
+                                    manifest_sources,
+                                    console_client,
+                                )
+                                .await
+                        })
+                        .await
+                        .2;
+                    let _ = installation.await;
+                }
+                _ => {}
+            };
+        }
+
         let start = start.await;
         #[cfg(feature = "auth")]
         auth_setup.await?;

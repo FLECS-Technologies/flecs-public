@@ -12,7 +12,7 @@ use tokio::sync::{RwLock, RwLockWriteGuard};
 const INITIAL_SETUP_ROLE: &str = "tech.flecs.core.initial_setup";
 
 pub struct Watch {
-    client: reqwest::Client,
+    client: openidconnect::reqwest::Client,
     data: RwLock<Data>,
     meta_cache_lifetime: Duration,
 }
@@ -24,6 +24,8 @@ pub enum Error {
     UnsupportedAlgorithm(jsonwebtoken::jwk::KeyAlgorithm),
     #[error(transparent)]
     JsonWebToken(#[from] jsonwebtoken::errors::Error),
+    #[error(transparent)]
+    Serde(#[from] serde_json::Error),
     #[error("No kid in header")]
     NoKid,
     #[error("Unknown kid '{0}'")]
@@ -31,9 +33,11 @@ pub enum Error {
     #[error("No auth provider configured")]
     NoAuthProvider,
     #[error(transparent)]
-    Reqwest(#[from] reqwest::Error),
+    Reqwest(#[from] openidconnect::reqwest::Error),
     #[error(transparent)]
-    OpenIdConnect(#[from] openidconnect::DiscoveryError<HttpClientError<reqwest::Error>>),
+    OpenIdConnect(
+        #[from] openidconnect::DiscoveryError<HttpClientError<openidconnect::reqwest::Error>>,
+    ),
 }
 
 #[derive(Clone, Default)]
@@ -70,7 +74,7 @@ where
 
 impl Watch {
     async fn fetch_meta(
-        client: &reqwest::Client,
+        client: &openidconnect::reqwest::Client,
         auth_provider_meta: &AuthProviderMetaData,
     ) -> Result<MetaData, Error> {
         let (issuer_url, jwks) = match auth_provider_meta {
@@ -80,22 +84,23 @@ impl Watch {
                     client,
                 )
                 .await?;
-                let jwks: jsonwebtoken::jwk::JwkSet = client
+                let jwks = client
                     .get(provider_metadata.jwks_uri().url().clone())
                     .send()
                     .await?
-                    .json()
+                    .bytes()
                     .await?;
+                let jwks: jsonwebtoken::jwk::JwkSet = serde_json::from_slice(&jwks)?;
                 (provider_metadata.issuer().url().clone(), jwks)
             }
             AuthProviderMetaData::Oauth {
                 issuer_url,
                 jwk_url,
             } => {
-                let issuer_url: url::Url =
-                    client.get(issuer_url.clone()).send().await?.json().await?;
-                let jwk: jsonwebtoken::jwk::Jwk =
-                    client.get(jwk_url.clone()).send().await?.json().await?;
+                let issuer_url = client.get(issuer_url.clone()).send().await?.bytes().await?;
+                let issuer_url: url::Url = serde_json::from_slice(&issuer_url)?;
+                let jwk = client.get(jwk_url.clone()).send().await?.bytes().await?;
+                let jwk: jsonwebtoken::jwk::Jwk = serde_json::from_slice(&jwk)?;
                 (issuer_url, jsonwebtoken::jwk::JwkSet { keys: vec![jwk] })
             }
         };
@@ -199,8 +204,8 @@ impl Watch {
 
     pub async fn new_with_lore(lore: AuthLoreRef) -> Result<Self, Error> {
         let lore = lore.as_ref().as_ref();
-        let client = reqwest::ClientBuilder::new()
-            .redirect(reqwest::redirect::Policy::none())
+        let client = openidconnect::reqwest::ClientBuilder::new()
+            .redirect(openidconnect::reqwest::redirect::Policy::none())
             .build()?;
         Ok(Self {
             data: RwLock::new(Data::default()),
