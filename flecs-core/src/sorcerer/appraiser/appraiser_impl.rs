@@ -4,8 +4,10 @@ use crate::jeweler::app::{AppStatus, Token};
 use crate::jeweler::gem::app::App;
 use crate::jeweler::gem::deployment::Deployment;
 use crate::jeweler::gem::manifest::AppManifest;
+use crate::lore::MargoLore;
 use crate::quest::SyncQuest;
 use crate::relic::floxy::Floxy;
+use crate::sorcerer::cleric::Client;
 use crate::sorcerer::{Sorcerer, spell};
 use crate::vault::pouch::{AppKey, Pouch};
 use crate::vault::{GrabbedPouches, Vault};
@@ -13,10 +15,12 @@ use async_trait::async_trait;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::TryFutureExt;
 use futures_util::future::join_all;
+use margo_workload_management_api_client_rs::apis::default_api::api_v1_clients_client_id_deployment_deployment_id_status_post;
+use margo_workload_management_api_client_rs::models;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::Arc;
-use tracing::error;
+use tracing::{error, warn};
 
 #[derive(Default)]
 pub struct AppraiserImpl {}
@@ -246,8 +250,9 @@ impl AppRaiser for AppraiserImpl {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        source: HashMap<String, Vec<ManifestSource>>,
+        source: HashMap<String, HashMap<String, ManifestSource>>,
         config: ConsoleClient,
+        margo_client: Client,
     ) -> anyhow::Result<()> {
         let mut sub_quests = Vec::new();
         for (id, manifest_sources) in source.into_iter() {
@@ -261,6 +266,7 @@ impl AppRaiser for AppraiserImpl {
                         id,
                         manifest_sources,
                         config.clone(),
+                        margo_client.clone(),
                     )
                 })
                 .await
@@ -286,28 +292,189 @@ impl AppRaiser for AppraiserImpl {
         quest: SyncQuest,
         vault: Arc<Vault>,
         id: String,
-        sources: Vec<ManifestSource>,
+        sources: HashMap<String, ManifestSource>,
         config: ConsoleClient,
+        margo_client: Client,
     ) -> anyhow::Result<()> {
-        install_application_deployment(quest, vault, id, sources, config).await
+        install_application_deployment(quest, vault, id, sources, config, margo_client).await
     }
+}
+
+async fn send_application_deployment_status_update(
+    margo_client: &Client,
+    deployment_id: &str,
+    status: models::DeploymentStatusManifest,
+) {
+    if let Err(e) = api_v1_clients_client_id_deployment_deployment_id_status_post(
+        &margo_client.config,
+        &margo_client.id,
+        deployment_id,
+        status,
+    )
+    .await
+    {
+        warn!("Failed to send status update for deployment {deployment_id}: {e}");
+    }
+}
+
+enum ApplicationDeploymentStatusUpdate {
+    Component(models::ComponentStatus),
+    ApplicationDeployment(models::DeploymentStatusManifestStatus),
+}
+
+impl From<models::ComponentStatus> for ApplicationDeploymentStatusUpdate {
+    fn from(value: models::ComponentStatus) -> Self {
+        Self::Component(value)
+    }
+}
+
+impl From<models::DeploymentStatusManifestStatus> for ApplicationDeploymentStatusUpdate {
+    fn from(value: models::DeploymentStatusManifestStatus) -> Self {
+        Self::ApplicationDeployment(value)
+    }
+}
+
+fn apply_update(
+    update: ApplicationDeploymentStatusUpdate,
+    status: &mut models::DeploymentStatusManifest,
+) {
+    match update {
+        ApplicationDeploymentStatusUpdate::Component(new_component_status) => {
+            if let Some(current_component_status) = status
+                .components
+                .iter_mut()
+                .find(|status| status.name == new_component_status.name)
+            {
+                *current_component_status = new_component_status;
+            } else {
+                status.components.push(new_component_status);
+            }
+        }
+        ApplicationDeploymentStatusUpdate::ApplicationDeployment(new_status) => {
+            *status.status = new_status;
+        }
+    }
+}
+
+fn application_deployment_status_updater(
+    margo_client: Client,
+    initial_status: models::DeploymentStatusManifest,
+) -> tokio::sync::mpsc::Sender<ApplicationDeploymentStatusUpdate> {
+    let (sender, mut receiver) = tokio::sync::mpsc::channel(100);
+    tokio::spawn(async move {
+        let mut status = initial_status;
+        send_application_deployment_status_update(
+            &margo_client,
+            &status.deployment_id,
+            status.clone(),
+        )
+        .await;
+        // TODO: Consider using recv_many and compressing multiple updates into one
+        while let Some(update) = receiver.recv().await {
+            apply_update(update, &mut status);
+            send_application_deployment_status_update(
+                &margo_client,
+                &status.deployment_id,
+                status.clone(),
+            )
+            .await;
+        }
+    });
+    sender
+}
+
+async fn install_application_deployment_component(
+    quest: SyncQuest,
+    vault: Arc<Vault>,
+    source: ManifestSource,
+    config: ConsoleClient,
+    updater: tokio::sync::mpsc::Sender<ApplicationDeploymentStatusUpdate>,
+    name: String,
+) -> anyhow::Result<AppKey> {
+    let _ = updater
+        .send(
+            models::ComponentStatus {
+                name: name.clone(),
+                state: models::component_status::State::Installing,
+                error: None,
+            }
+            .into(),
+        )
+        .await;
+    let result = install_app(quest, vault.clone(), source, config.clone()).await;
+    let _ = match &result {
+        Ok(_) => {
+            updater
+                .send(
+                    models::ComponentStatus {
+                        name,
+                        state: models::component_status::State::Installed,
+                        error: None,
+                    }
+                    .into(),
+                )
+                .await
+        }
+        Err(e) => {
+            updater
+                .send(
+                    models::ComponentStatus {
+                        name,
+                        state: models::component_status::State::Failed,
+                        error: Some(Box::new(models::ComponentStatusError {
+                            code: None,
+                            message: Some(e.to_string()),
+                        })),
+                    }
+                    .into(),
+                )
+                .await
+        }
+    };
+    result
 }
 
 async fn install_application_deployment(
     quest: SyncQuest,
     vault: Arc<Vault>,
     id: String,
-    sources: Vec<ManifestSource>,
+    sources: HashMap<String, ManifestSource>,
     config: ConsoleClient,
+    margo_client: Client,
 ) -> anyhow::Result<()> {
     // TODO: Post status updates
+    let status = models::DeploymentStatusManifest {
+        api_version: MargoLore::API_VERSION.to_string(),
+        kind: Default::default(),
+        deployment_id: id.clone(),
+        status: Box::new(models::DeploymentStatusManifestStatus::new(
+            models::deployment_status_manifest_status::State::Installing,
+        )),
+        components: sources
+            .keys()
+            .cloned()
+            .map(|name| models::ComponentStatus {
+                name,
+                state: models::component_status::State::Pending,
+                error: None,
+            })
+            .collect(),
+    };
+    let sender = application_deployment_status_updater(margo_client, status);
     let mut sub_quests = Vec::new();
-    for source in sources.into_iter() {
+    for (name, source) in sources.into_iter() {
         let sub_quest = quest
             .lock()
             .await
-            .create_sub_quest(format!("Install app {source}"), |quest| {
-                install_app(quest, vault.clone(), source, config.clone())
+            .create_sub_quest(format!("Install component {name} from {source}"), |quest| {
+                install_application_deployment_component(
+                    quest,
+                    vault.clone(),
+                    source,
+                    config.clone(),
+                    sender.clone(),
+                    name,
+                )
             })
             .await
             .2;
@@ -317,15 +484,32 @@ async fn install_application_deployment(
     let total = results.len();
     let installed = results.into_iter().filter_map(Result::ok).count();
     let failed = total - installed;
-    if failed == 0 {
-        Ok(())
+    let (result, status) = if failed == 0 {
+        (
+            Ok(()),
+            models::DeploymentStatusManifestStatus {
+                state: models::deployment_status_manifest_status::State::Installed,
+                error: None,
+            },
+        )
     } else {
-        Err(anyhow::anyhow!(
+        let message = format!(
             "Failed to install {} apps out of {} from {id}",
-            failed,
-            total,
-        ))
-    }
+            failed, total,
+        );
+        (
+            Err(anyhow::anyhow!(message.clone())),
+            models::DeploymentStatusManifestStatus {
+                state: models::deployment_status_manifest_status::State::Failed,
+                error: Some(Box::new(models::ComponentStatusError {
+                    code: None,
+                    message: Some(message),
+                })),
+            },
+        )
+    };
+    let _ = sender.send(status.into()).await;
+    result
 }
 
 async fn install_app_from_manifest(

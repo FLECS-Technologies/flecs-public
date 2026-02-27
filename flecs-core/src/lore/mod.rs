@@ -495,6 +495,8 @@ impl SystemLore {
 }
 
 impl MargoLore {
+    pub const API_VERSION: &str = "device.margo.org/v1alpha1";
+
     pub fn from_conf_with_defaults(conf: conf::MargoConfig, base_path: &Path) -> Self {
         let url = conf.url.unwrap_or_else(default::margo::url);
         let base_path = conf

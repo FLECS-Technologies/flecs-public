@@ -1,4 +1,4 @@
-use crate::lore::MargoLoreRef;
+use crate::lore::{MargoLore, MargoLoreRef};
 use crate::quest::SyncQuest;
 use crate::relic;
 use crate::sorcerer::Sorcerer;
@@ -7,20 +7,43 @@ use crate::sorcerer::cleric::{Cleric, Client};
 use crate::vault::Vault;
 use crate::vault::pouch::Pouch;
 use async_trait::async_trait;
+use base64::Engine;
+use http::Extensions;
 use margo_types::application_deployment::{ApplicationDeployment, DeploymentProfile};
 use margo_workload_management_api_client_rs::apis::configuration::Configuration;
-use margo_workload_management_api_client_rs::apis::default_api::{api_v1_clients_client_id_bundles_digest_get, api_v1_clients_client_id_capabilities_post, api_v1_clients_client_id_deployments_get, api_v1_onboarding_certificate_get, api_v1_onboarding_post};
+use margo_workload_management_api_client_rs::apis::default_api::{
+    api_v1_clients_client_id_bundles_digest_get, api_v1_clients_client_id_capabilities_post,
+    api_v1_clients_client_id_deployments_get, api_v1_onboarding_certificate_get,
+    api_v1_onboarding_post,
+};
+use margo_workload_management_api_client_rs::models;
 use margo_workload_management_api_client_rs::models::ApiV1OnboardingPostRequest;
-use reqwest_middleware::ClientBuilder;
+use reqwest::{Request, Response};
+use reqwest_middleware::{ClientBuilder, Middleware, Next};
 use std::collections::HashMap;
 use std::sync::Arc;
-use base64::Engine;
-use margo_workload_management_api_client_rs::models;
 use tracing::{debug, warn};
 
 pub struct ClericImpl;
 
 impl Sorcerer for ClericImpl {}
+
+struct LoggingMiddleware;
+
+#[async_trait::async_trait]
+impl Middleware for LoggingMiddleware {
+    async fn handle(
+        &self,
+        req: Request,
+        extensions: &mut Extensions,
+        next: Next<'_>,
+    ) -> reqwest_middleware::Result<Response> {
+        debug!("{req:?}");
+        let res = next.run(req, extensions).await;
+        debug!("{res:?}");
+        res
+    }
+}
 
 #[async_trait]
 impl Cleric for ClericImpl {
@@ -30,6 +53,9 @@ impl Cleric for ClericImpl {
         let base_path = lore.url.to_string().trim_end_matches('/').to_string();
         let config = Configuration {
             base_path,
+            client: ClientBuilder::new(reqwest::Client::new())
+                .with(LoggingMiddleware)
+                .build(),
             ..Configuration::default()
         };
         let cert = tokio::fs::read_to_string(lore.base_path.join("cert.pem")).await?;
@@ -42,7 +68,10 @@ impl Cleric for ClericImpl {
             .await?
             .certificate
             .unwrap();
-        debug!("Received certificate {certificate} from {}", config.base_path);
+        debug!(
+            "Received certificate {certificate} from {}",
+            config.base_path
+        );
         let certificate = base64::prelude::BASE64_STANDARD.decode(certificate)?;
         debug!("Decoded base64 of {}", config.base_path);
         let certificate = reqwest::Certificate::from_der(&certificate)?;
@@ -51,29 +80,41 @@ impl Cleric for ClericImpl {
             .tls_certs_merge([certificate])
             .identity(identity)
             .build()?;
-        let client = ClientBuilder::new(client).build();
-        let config = Configuration {
-            client,
-            ..config
-        };
+        let client = ClientBuilder::new(client).with(LoggingMiddleware).build();
+        let config = Configuration { client, ..config };
         debug!("Constructed client for {}", config.base_path);
-        let client_id = api_v1_onboarding_post(&config, ApiV1OnboardingPostRequest {
-            public_certificate: Some(cert),
-        })
-            .await?
-            .client_id
-            .unwrap();
-        debug!("Onboarding complete, received client_id {client_id} for {}", config.base_path);
+        let client_id = api_v1_onboarding_post(
+            &config,
+            ApiV1OnboardingPostRequest {
+                public_certificate: Some(cert),
+            },
+        )
+        .await?
+        .client_id
+        .unwrap();
+        debug!(
+            "Onboarding complete, received client_id {client_id} for {}",
+            config.base_path
+        );
         let client = Client {
             id: client_id,
             config,
         };
-        if let Err(e) = api_v1_clients_client_id_capabilities_post(&client.config, &client.id, models::DeviceCapabilitiesManifest {
-            api_version: "device.margo.org/v1alpha1".to_string(),
-            kind: Default::default(),
-            properties: Box::new(models::DeviceCapabilitiesManifestProperties::default()),
-        }).await {
-            warn!("Failed to post capabilities to {}: {e}", client.config.base_path);
+        if let Err(e) = api_v1_clients_client_id_capabilities_post(
+            &client.config,
+            &client.id,
+            models::DeviceCapabilitiesManifest {
+                api_version: MargoLore::API_VERSION.to_string(),
+                kind: Default::default(),
+                properties: Box::new(models::DeviceCapabilitiesManifestProperties::default()),
+            },
+        )
+        .await
+        {
+            warn!(
+                "Failed to post capabilities to {}: {e}",
+                client.config.base_path
+            );
         }
         Ok(client)
     }
@@ -82,15 +123,16 @@ impl Cleric for ClericImpl {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        client: Arc<Client>,
-    ) -> anyhow::Result<HashMap<String, Vec<ManifestSource>>> {
+        client: Client,
+    ) -> anyhow::Result<HashMap<String, HashMap<String, ManifestSource>>> {
         let deployments = {
             let client = client.clone();
             quest
                 .lock()
                 .await
                 .create_sub_quest("Query deployments", |_quest| async move {
-                    api_v1_clients_client_id_deployments_get(&client.config, &client.id, None, None).await
+                    api_v1_clients_client_id_deployments_get(&client.config, &client.id, None, None)
+                        .await
                 })
                 .await
                 .2
@@ -139,11 +181,15 @@ impl Cleric for ClericImpl {
 
 async fn get_bundle(
     bundle_digest: String,
-    client: Arc<Client>,
+    client: Client,
 ) -> anyhow::Result<HashMap<String, ApplicationDeployment>> {
-    let bundle_data =
-        api_v1_clients_client_id_bundles_digest_get(&client.config, &client.id, &bundle_digest, None)
-            .await?;
+    let bundle_data = api_v1_clients_client_id_bundles_digest_get(
+        &client.config,
+        &client.id,
+        &bundle_digest,
+        None,
+    )
+    .await?;
     let application_deployments: HashMap<String, ApplicationDeployment> =
         relic::async_flecstract::decompress_in_memory(bundle_data.bytes_stream())
             .await?
@@ -168,7 +214,7 @@ async fn get_bundle(
 
 fn extract_compose_components_package_locations(
     application_deployment: &ApplicationDeployment,
-) -> Option<Vec<ManifestSource>> {
+) -> Option<HashMap<String, ManifestSource>> {
     match &application_deployment.spec.deployment_profile {
         DeploymentProfile::Compose { components } => Some(
             components
@@ -182,7 +228,7 @@ fn extract_compose_components_package_locations(
                             );
                             None
                         }
-                        Ok(url) => Some(ManifestSource::Url(url)),
+                        Ok(url) => Some((component.name.clone(), ManifestSource::Url(url))),
                     },
                 )
                 .collect(),

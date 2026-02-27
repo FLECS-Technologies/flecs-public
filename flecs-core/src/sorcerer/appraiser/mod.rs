@@ -6,6 +6,7 @@ use crate::jeweler::gem::manifest::AppManifest;
 use crate::quest::SyncQuest;
 use crate::relic::floxy::Floxy;
 use crate::sorcerer::Sorcerer;
+use crate::sorcerer::cleric::Client;
 use crate::vault::Vault;
 use crate::vault::pouch::AppKey;
 pub use appraiser_impl::AppraiserImpl;
@@ -82,8 +83,9 @@ pub trait AppRaiser: Sorcerer {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        source: HashMap<String, Vec<ManifestSource>>,
+        source: HashMap<String, HashMap<String, ManifestSource>>,
         config: ConsoleClient,
+        margo_client: Client,
     ) -> Result<()>;
 
     async fn install_application_deployment(
@@ -91,8 +93,9 @@ pub trait AppRaiser: Sorcerer {
         quest: SyncQuest,
         vault: Arc<Vault>,
         id: String,
-        sources: Vec<ManifestSource>,
+        sources: HashMap<String, ManifestSource>,
         config: ConsoleClient,
+        margo_client: Client,
     ) -> Result<()>;
 }
 

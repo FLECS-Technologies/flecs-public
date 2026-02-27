@@ -95,7 +95,7 @@ pub mod system {
 pub mod margo {
     use url::Url;
 
-    const URL: &str = "https://sbi.dev.fleet-manager.logiccloud.io/";
+    const URL: &str = "https://sbi.dev.fleet-manager.logiccloud.io/boehringer-ingelheim";
     pub const BASE_DIRECTORY_NAME: &str = "margo";
     pub const APPLICATION_DEPLOYMENTS_DIRECTORY_NAME: &str = "application_deployments";
     pub fn url() -> Url {

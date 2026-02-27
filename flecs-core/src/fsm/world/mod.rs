@@ -309,7 +309,7 @@ impl<
         if let Ok(client) = onboarding.await {
             let manifest_sources = {
                 let cleric = sorcerers.cleric.clone();
-                let client = Arc::new(client);
+                let client = client.clone();
                 let vault = vault.clone();
                 quest
                     .lock()
@@ -333,6 +333,7 @@ impl<
                                     vault,
                                     manifest_sources,
                                     console_client,
+                                    client,
                                 )
                                 .await
                         })

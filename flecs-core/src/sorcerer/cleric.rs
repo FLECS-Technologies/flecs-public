@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 pub type ClientId = String;
 
+#[derive(Debug, Clone)]
 pub struct Client {
     pub id: ClientId,
     pub config: Configuration,
@@ -29,8 +30,8 @@ pub trait Cleric: Sorcerer {
         &self,
         quest: SyncQuest,
         vault: Arc<Vault>,
-        client: Arc<Client>,
-    ) -> Result<HashMap<String, Vec<ManifestSource>>>;
+        client: Client,
+    ) -> Result<HashMap<String, HashMap<String, ManifestSource>>>;
 }
 
 #[cfg(test)]
