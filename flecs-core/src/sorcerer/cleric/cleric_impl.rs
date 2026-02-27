@@ -1,23 +1,27 @@
 use crate::lore::{MargoLore, MargoLoreRef};
 use crate::quest::SyncQuest;
-use crate::relic;
 use crate::sorcerer::Sorcerer;
 use crate::sorcerer::appraiser::ManifestSource;
 use crate::sorcerer::cleric::{Cleric, Client};
 use crate::vault::Vault;
 use crate::vault::pouch::Pouch;
+use crate::{quest, relic};
 use async_trait::async_trait;
 use base64::Engine;
+use futures_util::future::join_all;
 use http::Extensions;
 use margo_types::application_deployment::{ApplicationDeployment, DeploymentProfile};
 use margo_workload_management_api_client_rs::apis::configuration::Configuration;
 use margo_workload_management_api_client_rs::apis::default_api::{
     api_v1_clients_client_id_bundles_digest_get, api_v1_clients_client_id_capabilities_post,
+    api_v1_clients_client_id_deployments_deployment_id_digest_get,
     api_v1_clients_client_id_deployments_get, api_v1_onboarding_certificate_get,
     api_v1_onboarding_post,
 };
 use margo_workload_management_api_client_rs::models;
-use margo_workload_management_api_client_rs::models::ApiV1OnboardingPostRequest;
+use margo_workload_management_api_client_rs::models::{
+    ApiV1OnboardingPostRequest, DeploymentManifestRef,
+};
 use reqwest::{Request, Response};
 use reqwest_middleware::{ClientBuilder, Middleware, Next};
 use std::collections::HashMap;
@@ -138,28 +142,37 @@ impl Cleric for ClericImpl {
                 .2
         };
         let deployments = deployments.await?;
-        // No bundle = no deployments = done
-        let Some(bundle) = deployments.bundle else {
-            debug!("Received no bundle from {}", client.config.base_path);
-            if !deployments.deployments.is_empty() {
-                warn!("Received {} deployments via unsupported deployments property", deployments.deployments.len());
-            }
-            return Ok(HashMap::new());
-        };
-        let digest = bundle
-            .digest
-            .ok_or_else(|| anyhow::anyhow!("No bundle digest present"))?;
-        let application_deployments = {
+        let digest = deployments
+            .bundle
+            .map(|bundle| {
+                bundle
+                    .digest
+                    .ok_or_else(|| anyhow::anyhow!("No bundle digest present"))
+            })
+            .transpose()?;
+        let bundle_application_deployments = {
             quest
                 .lock()
                 .await
-                .create_sub_quest(format!("Get bundle {digest}"), move |_quest| {
-                    get_bundle(digest, client)
+                .spawn_sub_quest("Get bundle", |quest| {
+                    get_bundle(quest, digest, client.clone())
                 })
                 .await
                 .2
         };
-        let application_deployments = application_deployments.await?;
+        let additional_application_deployments = {
+            quest
+                .lock()
+                .await
+                .create_sub_quest("Get additional application deployments", |quest| {
+                    get_application_deployments(quest, deployments.deployments, client.clone())
+                })
+                .await
+                .2
+        };
+        let bundle_application_deployments = bundle_application_deployments.await??;
+        let mut application_deployments = bundle_application_deployments;
+        application_deployments.extend(additional_application_deployments.await?);
         let manifest_sources = application_deployments
             .iter()
             .filter_map(|(id, application_deployment)| {
@@ -183,17 +196,87 @@ impl Cleric for ClericImpl {
     }
 }
 
-async fn get_bundle(
-    bundle_digest: String,
+async fn get_application_deployments(
+    quest: SyncQuest,
+    deployment_manifests: Vec<DeploymentManifestRef>,
     client: Client,
 ) -> anyhow::Result<HashMap<String, ApplicationDeployment>> {
-    let bundle_data = api_v1_clients_client_id_bundles_digest_get(
+    let mut sub_quests = Vec::new();
+    for deployment_manifest in deployment_manifests {
+        let sub_quest = quest
+            .lock()
+            .await
+            .spawn_sub_quest(
+                format!(
+                    "Get application deployment {}",
+                    deployment_manifest.deployment_id
+                ),
+                |_quest| get_application_deployment(deployment_manifest, client.clone()),
+            )
+            .await
+            .2;
+        sub_quests.push(sub_quest);
+    }
+    let application_deployments = join_all(sub_quests).await;
+    let total = application_deployments.len();
+    let succeeded = application_deployments
+        .iter()
+        .filter(|result| matches!(result, Ok(Ok(_))))
+        .count();
+    anyhow::ensure!(
+        total == succeeded,
+        "Failed to get {} application deployments out of {total}",
+        total - succeeded
+    );
+    Ok(application_deployments
+        .into_iter()
+        .filter_map(|application_deployment| {
+            let application_deployment = application_deployment.ok()?.ok()?;
+            Some((
+                application_deployment
+                    .metadata
+                    .annotations
+                    .application_id
+                    .clone(),
+                application_deployment,
+            ))
+        })
+        .collect())
+}
+
+async fn get_application_deployment(
+    deployment_manifest: DeploymentManifestRef,
+    client: Client,
+) -> anyhow::Result<ApplicationDeployment> {
+    let deployment = api_v1_clients_client_id_deployments_deployment_id_digest_get(
         &client.config,
         &client.id,
-        &bundle_digest,
+        &deployment_manifest.deployment_id,
+        &deployment_manifest.digest,
+        None,
         None,
     )
     .await?;
+    let deployment: ApplicationDeployment = serde_norway::from_str(&deployment)?;
+    Ok(deployment)
+}
+
+async fn get_bundle(
+    quest: SyncQuest,
+    digest: Option<String>,
+    client: Client,
+) -> anyhow::Result<HashMap<String, ApplicationDeployment>> {
+    // No bundle = no deployments = done
+    let Some(digest) = digest else {
+        debug!("Received no bundle from {}", client.config.base_path);
+        let mut quest = quest.lock().await;
+        quest.state = quest::State::Skipped;
+        quest.detail = Some("No bundle present".to_string());
+        return Ok(HashMap::new());
+    };
+    let bundle_data =
+        api_v1_clients_client_id_bundles_digest_get(&client.config, &client.id, &digest, None)
+            .await?;
     let application_deployments: HashMap<String, ApplicationDeployment> =
         relic::async_flecstract::decompress_in_memory(bundle_data.bytes_stream())
             .await?
@@ -210,7 +293,7 @@ async fn get_bundle(
             })
             .collect::<Result<HashMap<String, ApplicationDeployment>, _>>()?;
     debug!(
-        "Received {} application deployments in bundle {bundle_digest}",
+        "Received {} application deployments in bundle {digest}",
         application_deployments.len()
     );
     Ok(application_deployments)
