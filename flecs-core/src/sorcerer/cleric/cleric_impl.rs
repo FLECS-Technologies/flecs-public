@@ -140,6 +140,10 @@ impl Cleric for ClericImpl {
         let deployments = deployments.await?;
         // No bundle = no deployments = done
         let Some(bundle) = deployments.bundle else {
+            debug!("Received no bundle from {}", client.config.base_path);
+            if !deployments.deployments.is_empty() {
+                warn!("Received {} deployments via unsupported deployments property", deployments.deployments.len());
+            }
             return Ok(HashMap::new());
         };
         let digest = bundle
