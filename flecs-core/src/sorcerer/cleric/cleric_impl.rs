@@ -153,7 +153,20 @@ impl Cleric for ClericImpl {
             models::DeviceCapabilitiesManifest {
                 api_version: MargoLore::API_VERSION.to_string(),
                 kind: Default::default(),
-                properties: Box::new(models::DeviceCapabilitiesManifestProperties::default()),
+                properties: Box::new(models::DeviceCapabilitiesManifestProperties{
+                    id: client.id.clone(),
+                    vendor: "Some Vendor".to_string(),
+                    model_number: "1234".to_string(),
+                    serial_number: "5678".to_string(),
+                    roles: vec![models::device_capabilities_manifest_properties::Roles::StandaloneDevice],
+                    resources: Box::new(models::DeviceCapabilitiesManifestPropertiesResources{
+                        cpu: Box::new(models::DeviceCapabilitiesManifestPropertiesResourcesCpu{
+                            cores: Some(8.0),
+                        }),
+                        memory: "16GB".to_string(),
+                        storage: "128GB".to_string(),
+                    }),
+                }),
             },
         )
         .await
