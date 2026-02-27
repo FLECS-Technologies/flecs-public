@@ -60,8 +60,7 @@ slog = { version = "2.7", optional = true }
 url = { version = "2.5", features = ["serde"], optional = true }
 utoipa = { version = "5.4", features = ["axum_extras", "yaml", "non_strict_integers", "debug", "url"] }
 net-spider = { git = "https://codeberg.org/flecs-tech/net-spider.git", rev = "57999c8ad8bac26f88d71a45a904da43baa6c453" }
-margo_types = { git = "https://codeberg.org/flecs-tech/margo-types-rs.git", rev = "00e1a45d6c4ccbaa7d78dbb5d0c49b5c45c39489" }
-margo-workload-management-api-client-rs = { git = "https://github.com/FLECS-Technologies/margo-workload-management-api-client-rs.git", rev = "41b4fbb1c9761060cffc905dcc4144e7076c07e9", features = ["stream"]}
+margo-workload-management-api-client-rs = { git = "https://github.com/FLECS-Technologies/margo-workload-management-api-client-rs.git", rev = "15b258cef3048ae25abe4c003d0c24f7d093a2b0", features = ["stream"]}
 ipnet = "2.11.0"
 serde_norway = "0.9.42"
 base64 = "0.22"

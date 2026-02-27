@@ -1131,7 +1131,6 @@ dependencies = [
  "jsonwebtoken",
  "libc 0.2.177",
  "margo-workload-management-api-client-rs",
- "margo_types",
  "mockall",
  "mockito",
  "net-spider",
@@ -2178,7 +2177,7 @@ checksum = "112b39cec0b298b6c1999fee3e31427f74f676e4cb9879ed1a121b43661a4154"
 [[package]]
 name = "margo-workload-management-api-client-rs"
 version = "1.0.0"
-source = "git+https://github.com/FLECS-Technologies/margo-workload-management-api-client-rs.git?rev=41b4fbb1c9761060cffc905dcc4144e7076c07e9#41b4fbb1c9761060cffc905dcc4144e7076c07e9"
+source = "git+https://github.com/FLECS-Technologies/margo-workload-management-api-client-rs.git?rev=15b258cef3048ae25abe4c003d0c24f7d093a2b0#15b258cef3048ae25abe4c003d0c24f7d093a2b0"
 dependencies = [
  "reqwest 0.13.2",
  "reqwest-middleware",
@@ -2186,14 +2185,6 @@ dependencies = [
  "serde_json",
  "serde_repr",
  "url",
-]
-
-[[package]]
-name = "margo_types"
-version = "0.1.0"
-source = "git+https://codeberg.org/flecs-tech/margo-types-rs.git?rev=00e1a45d6c4ccbaa7d78dbb5d0c49b5c45c39489#00e1a45d6c4ccbaa7d78dbb5d0c49b5c45c39489"
-dependencies = [
- "serde",
 ]
 
 [[package]]

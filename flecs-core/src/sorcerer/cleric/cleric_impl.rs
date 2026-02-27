@@ -10,7 +10,6 @@ use async_trait::async_trait;
 use base64::Engine;
 use futures_util::future::join_all;
 use http::Extensions;
-use margo_types::application_deployment::{ApplicationDeployment, DeploymentProfile};
 use margo_workload_management_api_client_rs::apis::configuration::Configuration;
 use margo_workload_management_api_client_rs::apis::default_api::{
     api_v1_clients_client_id_bundles_digest_get, api_v1_clients_client_id_capabilities_post,
@@ -22,6 +21,7 @@ use margo_workload_management_api_client_rs::models;
 use margo_workload_management_api_client_rs::models::{
     ApiV1OnboardingPostRequest, DeploymentManifestRef,
 };
+use models::app_deployment_manifest::AppDeploymentManifest as ApplicationDeployment;
 use reqwest::{Request, Response};
 use reqwest_middleware::{ClientBuilder, Middleware, Next};
 use std::collections::HashMap;
@@ -95,9 +95,9 @@ impl Cleric for ClericImpl {
                             .certificate
                             .unwrap();
                         debug!(
-                        "Received certificate {certificate} from {}",
-                        config.base_path
-                    );
+                            "Received certificate {certificate} from {}",
+                            config.base_path
+                        );
                         let certificate = base64::prelude::BASE64_STANDARD.decode(certificate)?;
                         debug!("Decoded base64 of {}", config.base_path);
                         reqwest::Certificate::from_der(&certificate).map_err(anyhow::Error::from)
@@ -130,9 +130,9 @@ impl Cleric for ClericImpl {
                                 public_certificate: Some(cert),
                             },
                         )
-                            .await?
-                            .client_id
-                            .ok_or_else(|| anyhow::anyhow!("Received no client id"))
+                        .await?
+                        .client_id
+                        .ok_or_else(|| anyhow::anyhow!("Received no client id"))
                     },
                 )
                 .await
@@ -153,14 +153,16 @@ impl Cleric for ClericImpl {
             models::DeviceCapabilitiesManifest {
                 api_version: MargoLore::API_VERSION.to_string(),
                 kind: Default::default(),
-                properties: Box::new(models::DeviceCapabilitiesManifestProperties{
+                properties: Box::new(models::DeviceCapabilitiesManifestProperties {
                     id: client.id.clone(),
                     vendor: "Some Vendor".to_string(),
                     model_number: "1234".to_string(),
                     serial_number: "5678".to_string(),
-                    roles: vec![models::device_capabilities_manifest_properties::Roles::StandaloneDevice],
-                    resources: Box::new(models::DeviceCapabilitiesManifestPropertiesResources{
-                        cpu: Box::new(models::DeviceCapabilitiesManifestPropertiesResourcesCpu{
+                    roles: vec![
+                        models::device_capabilities_manifest_properties::Roles::StandaloneDevice,
+                    ],
+                    resources: Box::new(models::DeviceCapabilitiesManifestPropertiesResources {
+                        cpu: Box::new(models::DeviceCapabilitiesManifestPropertiesResourcesCpu {
                             cores: Some(8.0),
                         }),
                         memory: "16GB".to_string(),
@@ -291,9 +293,9 @@ async fn get_application_deployments(
             Some((
                 application_deployment
                     .metadata
-                    .annotations
-                    .application_id
-                    .clone(),
+                    .id
+                    .clone()
+                    .unwrap_or_else(|| application_deployment.metadata.name.clone()),
                 application_deployment,
             ))
         })
@@ -341,7 +343,11 @@ async fn get_bundle(
                 serde_norway::from_slice::<ApplicationDeployment>(bytes).map(
                     |application_deployment| {
                         (
-                            application_deployment.metadata.annotations.id.clone(),
+                            application_deployment
+                                .metadata
+                                .id
+                                .clone()
+                                .unwrap_or_else(|| application_deployment.metadata.name.clone()),
                             application_deployment,
                         )
                     },
@@ -358,25 +364,33 @@ async fn get_bundle(
 fn extract_compose_components_package_locations(
     application_deployment: &ApplicationDeployment,
 ) -> Option<HashMap<String, ManifestSource>> {
-    match &application_deployment.spec.deployment_profile {
-        DeploymentProfile::Compose { components } => Some(
-            components
-                .iter()
-                .filter_map(
-                    |component| match component.properties.package_location.parse() {
-                        Err(e) => {
-                            warn!(
-                                "Invalid package location '{}': {e}",
-                                component.properties.package_location
-                            );
-                            None
+    match &application_deployment.spec.deployment_profile.r#type {
+        models::app_deployment_profile::Type::Compose =>
+            Some(
+                application_deployment.spec.deployment_profile.components
+                    .iter()
+                    .filter_map(
+                        |component| match component {
+                            models::AppDeploymentProfileComponentsInner::ComposeApplicationDeploymentProfileComponent(compose) => {
+                                match compose.properties.package_location.parse() {
+                                    Ok(url) => Some((compose.name.clone(), ManifestSource::Url(url))),
+                                    Err(e) => {
+                                        warn!("Ignoring invalid package location {} of component {}: {e}", compose.properties.package_location, compose.name);
+                                        None
+                                    }
+                                }
+                            }
+                            models::AppDeploymentProfileComponentsInner::HelmApplicationDeploymentProfileComponent(helm) => {
+                                warn!("Unsupported component inside compose application deployment: {}", helm.name);
+                                None
+                            }
                         }
-                        Ok(url) => Some((component.name.clone(), ManifestSource::Url(url))),
-                    },
-                )
-                .collect(),
-        ),
-        DeploymentProfile::HelmV3 { .. } => {
+
+                    )
+                    .collect()
+
+            ),
+        models::app_deployment_profile::Type::HelmV3 => {
             warn!("HelmV3 deployments are unsupported");
             None
         }

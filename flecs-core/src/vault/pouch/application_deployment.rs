@@ -1,7 +1,7 @@
 use crate::lore::MargoLoreRef;
 use crate::vault::Error;
 use crate::vault::pouch::Pouch;
-use margo_types::application_deployment::ApplicationDeployment;
+use margo_workload_management_api_client_rs::models::app_deployment_manifest::AppDeploymentManifest as ApplicationDeployment;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -58,7 +58,11 @@ impl ApplicationDeploymentPouch {
                 }
                 Ok(application_deployment) => {
                     self.application_deployments.insert(
-                        application_deployment.metadata.annotations.id.clone(),
+                        application_deployment
+                            .metadata
+                            .id
+                            .clone()
+                            .unwrap_or_else(|| application_deployment.metadata.name.clone()),
                         application_deployment,
                     );
                     debug!("Successful read application deployment from {entry:?}");
@@ -89,7 +93,11 @@ impl ApplicationDeploymentPouch {
     ) -> crate::vault::Result<()> {
         let path = base_path.join(format!(
             "{}.{APPLICATION_DEPLOYMENT_FILE_ENDING}",
-            application_deployment.metadata.annotations.id
+            application_deployment
+                .metadata
+                .id
+                .clone()
+                .unwrap_or_else(|| application_deployment.metadata.name.clone()),
         ));
         let file = std::fs::File::create(path)?;
         serde_norway::to_writer(file, application_deployment)?;
