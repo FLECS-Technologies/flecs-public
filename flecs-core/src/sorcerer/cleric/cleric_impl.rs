@@ -49,6 +49,24 @@ impl Middleware for LoggingMiddleware {
     }
 }
 
+pub trait GetApplicationDeploymentId {
+    fn get_deployment_id(&self) -> String;
+}
+
+impl GetApplicationDeploymentId for ApplicationDeployment {
+    fn get_deployment_id(&self) -> String {
+        if let Some(id) = &self.metadata.id {
+            return id.clone();
+        }
+        if let Some(annotations) = &self.metadata.annotations {
+            if let Some(id) = annotations.get("id") {
+                return id.clone();
+            }
+        }
+        self.metadata.name.clone()
+    }
+}
+
 #[async_trait]
 impl Cleric for ClericImpl {
     async fn onboarding(&self, quest: SyncQuest, lore: MargoLoreRef) -> anyhow::Result<Client> {
@@ -291,11 +309,7 @@ async fn get_application_deployments(
         .filter_map(|application_deployment| {
             let application_deployment = application_deployment.ok()?.ok()?;
             Some((
-                application_deployment
-                    .metadata
-                    .id
-                    .clone()
-                    .unwrap_or_else(|| application_deployment.metadata.name.clone()),
+                application_deployment.get_deployment_id(),
                 application_deployment,
             ))
         })
@@ -343,11 +357,7 @@ async fn get_bundle(
                 serde_norway::from_slice::<ApplicationDeployment>(bytes).map(
                     |application_deployment| {
                         (
-                            application_deployment
-                                .metadata
-                                .id
-                                .clone()
-                                .unwrap_or_else(|| application_deployment.metadata.name.clone()),
+                            application_deployment.get_deployment_id(),
                             application_deployment,
                         )
                     },
