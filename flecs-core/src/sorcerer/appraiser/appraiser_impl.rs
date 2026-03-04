@@ -15,7 +15,7 @@ use async_trait::async_trait;
 use flecsd_axum_server::models::InstalledApp;
 use futures_util::TryFutureExt;
 use futures_util::future::join_all;
-use margo_workload_management_api_client_rs::apis::default_api::api_v1_clients_client_id_deployment_deployment_id_status_post;
+use margo_workload_management_api_client_rs::apis::default_api::api_v1_clients_client_id_deployments_deployment_id_status_post;
 use margo_workload_management_api_client_rs::models;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -305,7 +305,7 @@ async fn send_application_deployment_status_update(
     deployment_id: &str,
     status: models::DeploymentStatusManifest,
 ) {
-    if let Err(e) = api_v1_clients_client_id_deployment_deployment_id_status_post(
+    if let Err(e) = api_v1_clients_client_id_deployments_deployment_id_status_post(
         &margo_client.config,
         &margo_client.id,
         deployment_id,

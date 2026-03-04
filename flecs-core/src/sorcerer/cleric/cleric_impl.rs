@@ -145,7 +145,9 @@ impl Cleric for ClericImpl {
                         api_v1_onboarding_post(
                             &config,
                             ApiV1OnboardingPostRequest {
-                                public_certificate: Some(cert),
+                                api_version: MargoLore::API_VERSION.to_string(),
+                                certificate: cert,
+                                ..ApiV1OnboardingPostRequest::default()
                             },
                         )
                         .await?
@@ -181,10 +183,13 @@ impl Cleric for ClericImpl {
                     ],
                     resources: Box::new(models::DeviceCapabilitiesManifestPropertiesResources {
                         cpu: Box::new(models::DeviceCapabilitiesManifestPropertiesResourcesCpu {
-                            cores: Some(8.0),
+                            cores: 8.0,
+                            architecture: None,
                         }),
                         memory: "16GB".to_string(),
                         storage: "128GB".to_string(),
+                        peripherals: vec![],
+                        interfaces: vec![],
                     }),
                 }),
             },
