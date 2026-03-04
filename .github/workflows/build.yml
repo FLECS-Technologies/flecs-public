@@ -50,10 +50,6 @@ jobs:
           cmake --install build/${{ inputs.arch }} --component docker
           cmake --build build/${{ inputs.arch }} --target docker
 
-      - name: "CMake: Latest"
-        run: |
-          cmake --build build/${{ inputs.arch }} --target version -- --quiet >build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
-
       - name: Archive Docker image archives
         uses: actions/upload-artifact@v4
         with:
@@ -62,10 +58,3 @@ jobs:
             build/${{ inputs.arch }}/docker/**/flecs*.tar
           retention-days: 1
 
-      - name: Archive packages
-        uses: actions/upload-artifact@v4
-        with:
-          name: packages_${{ inputs.arch }}
-          path: |
-            build/${{ inputs.arch }}/latest_flecs_${{ inputs.arch }}
-          retention-days: 1

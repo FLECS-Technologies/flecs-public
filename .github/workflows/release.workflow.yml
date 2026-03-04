@@ -17,19 +17,6 @@ jobs:
       build_type: Release
       cmake_args: -DNDEBUG=1
       flecs_build_ref: ${{ github.ref_name }}
-
-  deploy-dl:
-    needs: build
-
-    strategy:
-      matrix:
-        arch: ["amd64", "arm64"]
-
-    uses: ./.github/workflows/deploy-dl.yml
-    with:
-      arch: ${{ matrix.arch }}
-      deploy_dir: public
-    secrets: inherit
   
   deploy-cr:
     needs: build
