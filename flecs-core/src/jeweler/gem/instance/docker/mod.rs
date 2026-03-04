@@ -1138,6 +1138,10 @@ impl DockerInstance {
         for result in export_volumes_result {
             result?;
         }
+        debug!(
+            "Completed backup to {path}",
+            path = new_backup_path.display()
+        );
         self.manifest = new_manifest;
         // TODO: Prepare/use new objects from manifest (config files, ports, envs)
         if is_running {
