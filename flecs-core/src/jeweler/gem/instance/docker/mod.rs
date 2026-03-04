@@ -1138,26 +1138,7 @@ impl DockerInstance {
         for result in export_volumes_result {
             result?;
         }
-        let current_version = self.app_key().version;
-        let new_version = new_manifest.key.version.clone();
         self.manifest = new_manifest;
-        if current_version > new_version {
-            let mut entries = tokio::fs::read_dir(backup_path.join(&new_version)).await?;
-            let mut latest_backup = None;
-            while let Some(entry) = entries.next_entry().await? {
-                match &latest_backup {
-                    None => latest_backup = Some(entry.path()),
-                    Some(current) => {
-                        if entry.path() > *current {
-                            latest_backup = Some(entry.path());
-                        }
-                    }
-                }
-            }
-            if let Some(backup) = latest_backup {
-                self.import(quest, backup, base_path.to_path_buf()).await?;
-            }
-        }
         // TODO: Prepare/use new objects from manifest (config files, ports, envs)
         if is_running {
             self.start(floxy).await?;
