@@ -229,3 +229,70 @@ impl DockerCli {
         Ok(stdout.to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::jeweler::app::Token;
+
+    fn test_token() -> Token {
+        Token {
+            username: "testuser".to_string(),
+            password: "testpassword".to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn temp_docker_config_creates_config_file() {
+        let dir = DockerCli::temp_docker_config(&test_token(), "example.registry.io")
+            .await
+            .unwrap();
+        assert!(dir.join("config.json").exists());
+        fs::remove_dir_all(&dir).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn temp_docker_config_auth_is_base64_username_colon_password() {
+        let token = test_token();
+        let dir = DockerCli::temp_docker_config(&token, "example.registry.io")
+            .await
+            .unwrap();
+        let config_str = fs::read_to_string(dir.join("config.json")).await.unwrap();
+        let config: serde_json::Value = serde_json::from_str(&config_str).unwrap();
+        let auth = config["auths"]["example.registry.io"]["auth"]
+            .as_str()
+            .unwrap();
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(auth)
+            .unwrap();
+        assert_eq!(decoded, b"testuser:testpassword");
+        fs::remove_dir_all(&dir).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn temp_docker_config_uses_given_registry() {
+        let registry = "my.custom.registry.io";
+        let dir = DockerCli::temp_docker_config(&test_token(), registry)
+            .await
+            .unwrap();
+        let config_str = fs::read_to_string(dir.join("config.json")).await.unwrap();
+        let config: serde_json::Value = serde_json::from_str(&config_str).unwrap();
+        assert!(config["auths"][registry].is_object());
+        assert!(config["auths"]["other.registry.io"].is_null());
+        fs::remove_dir_all(&dir).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn temp_docker_config_dirs_are_unique() {
+        let token = test_token();
+        let dir1 = DockerCli::temp_docker_config(&token, "example.registry.io")
+            .await
+            .unwrap();
+        let dir2 = DockerCli::temp_docker_config(&token, "example.registry.io")
+            .await
+            .unwrap();
+        assert_ne!(dir1, dir2);
+        fs::remove_dir_all(&dir1).await.unwrap();
+        fs::remove_dir_all(&dir2).await.unwrap();
+    }
+}
