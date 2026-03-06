@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/docker")
+
 function(stage_docker_fs)
     install(
         FILES ${CMAKE_BINARY_DIR}/flecsd
