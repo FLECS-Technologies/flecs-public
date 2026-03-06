@@ -1,6 +1,8 @@
 use crate::jeweler::app::Token;
+use base64::Engine;
 use std::path::{Path, PathBuf};
 use std::process::{ExitStatus, Stdio};
+use tokio::fs;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::Command;
 use tracing::trace;
@@ -85,30 +87,37 @@ impl DockerCli {
         }
     }
 
-    pub async fn login(&self, token: Token) -> Result<(), ExecuteCommandError> {
-        let mut command = self.command();
-        command.args([
-            "login",
-            "--username",
-            token.username.as_str(),
-            "--password-stdin",
-            "flecs.azurecr.io",
-        ]);
-        Self::spawn_printing_stdout(command, Some(&token.password)).await
-    }
-
-    pub async fn logout(&self) -> Result<(), ExecuteCommandError> {
-        let mut command = self.command();
-        command.arg("logout");
-        Self::spawn_printing_stdout::<&str>(command, None).await
+    async fn temp_docker_config(
+        token: &Token,
+        registry: &str,
+    ) -> Result<PathBuf, ExecuteCommandError> {
+        let auth = base64::engine::general_purpose::STANDARD
+            .encode(format!("{}:{}", token.username, token.password));
+        let config = serde_json::json!({
+            "auths": {
+                registry: { "auth": auth }
+            }
+        });
+        let dir = std::env::temp_dir().join(format!("flecs-docker-{}", rand::random::<u64>()));
+        fs::create_dir_all(&dir).await?;
+        fs::write(dir.join("config.json"), config.to_string()).await?;
+        Ok(dir)
     }
 
     pub async fn compose_pull<T: AsRef<[u8]>>(
         &self,
         project_name: &str,
         compose: &T,
+        token: Option<Token>,
     ) -> Result<(), ExecuteCommandError> {
         let mut command = self.command();
+        let temp_config_dir = if let Some(ref token) = token {
+            let dir = Self::temp_docker_config(token, "flecs.azurecr.io").await?;
+            command.env("DOCKER_CONFIG", &dir);
+            Some(dir)
+        } else {
+            None
+        };
         command.args([
             "compose",
             "--project-name",
@@ -117,7 +126,11 @@ impl DockerCli {
             "-",
             "pull",
         ]);
-        Self::spawn_printing_stdout(command, Some(compose)).await
+        let result = Self::spawn_printing_stdout(command, Some(compose)).await;
+        if let Some(dir) = temp_config_dir {
+            let _ = fs::remove_dir_all(dir).await;
+        }
+        result
     }
 
     pub async fn compose_up<T: AsRef<[u8]>>(
@@ -214,5 +227,72 @@ impl DockerCli {
         let stdout = Self::spawn_with_stdout(command, Some(compose)).await?;
         let stdout = String::from_utf8_lossy(&stdout);
         Ok(stdout.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::jeweler::app::Token;
+
+    fn test_token() -> Token {
+        Token {
+            username: "testuser".to_string(),
+            password: "testpassword".to_string(),
+        }
+    }
+
+    #[tokio::test]
+    async fn temp_docker_config_creates_config_file() {
+        let dir = DockerCli::temp_docker_config(&test_token(), "example.registry.io")
+            .await
+            .unwrap();
+        assert!(dir.join("config.json").exists());
+        fs::remove_dir_all(&dir).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn temp_docker_config_auth_is_base64_username_colon_password() {
+        let token = test_token();
+        let dir = DockerCli::temp_docker_config(&token, "example.registry.io")
+            .await
+            .unwrap();
+        let config_str = fs::read_to_string(dir.join("config.json")).await.unwrap();
+        let config: serde_json::Value = serde_json::from_str(&config_str).unwrap();
+        let auth = config["auths"]["example.registry.io"]["auth"]
+            .as_str()
+            .unwrap();
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(auth)
+            .unwrap();
+        assert_eq!(decoded, b"testuser:testpassword");
+        fs::remove_dir_all(&dir).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn temp_docker_config_uses_given_registry() {
+        let registry = "my.custom.registry.io";
+        let dir = DockerCli::temp_docker_config(&test_token(), registry)
+            .await
+            .unwrap();
+        let config_str = fs::read_to_string(dir.join("config.json")).await.unwrap();
+        let config: serde_json::Value = serde_json::from_str(&config_str).unwrap();
+        assert!(config["auths"][registry].is_object());
+        assert!(config["auths"]["other.registry.io"].is_null());
+        fs::remove_dir_all(&dir).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn temp_docker_config_dirs_are_unique() {
+        let token = test_token();
+        let dir1 = DockerCli::temp_docker_config(&token, "example.registry.io")
+            .await
+            .unwrap();
+        let dir2 = DockerCli::temp_docker_config(&token, "example.registry.io")
+            .await
+            .unwrap();
+        assert_ne!(dir1, dir2);
+        fs::remove_dir_all(&dir1).await.unwrap();
+        fs::remove_dir_all(&dir2).await.unwrap();
     }
 }
