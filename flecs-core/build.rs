@@ -1,12 +1,16 @@
 use std::process::Stdio;
 
 fn main() {
+    println!("cargo::rerun-if-env-changed=FLECS_CODENAME");
+    println!("cargo::rerun-if-env-changed=FLECS_VERSION");
+    println!("cargo::rerun-if-changed=../.git/HEAD");
+    println!("cargo::rerun-if-changed=../.git/refs/heads/");
     const CODENAME: &str = env!("FLECS_CODENAME");
     const VERSION: &str = env!("FLECS_VERSION");
     #[cfg(debug_assertions)]
-    println!("cargo:rustc-env=FLECS_VERSION={VERSION}-{CODENAME}-dev");
+    println!("cargo:rustc-env=FLECS_FULL_VERSION={VERSION}-{CODENAME}-dev");
     #[cfg(not(debug_assertions))]
-    println!("cargo:rustc-env=FLECS_VERSION={VERSION}-{CODENAME}");
+    println!("cargo:rustc-env=FLECS_FULL_VERSION={VERSION}-{CODENAME}");
     let result = std::process::Command::new("git")
         .args([
             "-C",
