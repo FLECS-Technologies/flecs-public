@@ -102,19 +102,15 @@ impl ComposeDeploymentImpl {
         DockerCli::new_with_unix_socket(self.docker_socket_path.clone())
     }
 
-    async fn docker_login(&self, token: Token) -> Result<(), ExecuteCommandError> {
-        self.docker_cli().login(token).await
-    }
-
-    async fn docker_logout(&self) -> Result<(), ExecuteCommandError> {
-        self.docker_cli().logout().await
-    }
-
-    async fn compose_pull(&self, manifest: &AppManifestMulti) -> Result<AppId, ExecuteCompose> {
+    async fn compose_pull(
+        &self,
+        manifest: &AppManifestMulti,
+        token: Option<Token>,
+    ) -> Result<AppId, ExecuteCompose> {
         let compose = manifest.compose_json()?;
         let project_name = manifest.project_name();
         self.docker_cli()
-            .compose_pull(&project_name, &compose)
+            .compose_pull(&project_name, &compose, token)
             .await?;
         Ok(project_name)
     }
@@ -266,15 +262,7 @@ impl AppDeployment for ComposeDeploymentImpl {
         let AppManifest::Multi(manifest) = manifest else {
             panic!("Compose deployment can not be called with single app manifests");
         };
-        let logout_needed = token.is_some();
-        if let Some(token) = token {
-            self.docker_login(token).await?;
-        }
-        let pull_result = self.compose_pull(&manifest).await;
-        if logout_needed {
-            self.docker_logout().await?;
-        }
-        pull_result?;
+        self.compose_pull(&manifest, token).await?;
         Ok(())
     }
 
