@@ -50,6 +50,7 @@ futures = "0.3"
 async-compression = { version = "0.4", features = ["tokio", "gzip"] }
 erased-serde = "0.4"
 rand = "0.8.5"
+base64 = "0.22"
 docker-compose-types = { version = "0.22", default-features = false, features = ["norway"] }
 astral-tokio-tar = { version = "0.5" }
 chrono = "0.4.41"
