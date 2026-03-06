@@ -22,12 +22,31 @@ fn main() {
     let git_sha = git_sha.trim();
     println!("cargo:rustc-env=FLECS_GIT_SHA={git_sha}");
 
+    let dirty_output = std::process::Command::new("git")
+        .args(["-C", env!("CARGO_MANIFEST_DIR"), "status", "--porcelain"])
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap()
+        .wait_with_output()
+        .unwrap();
+    assert!(dirty_output.status.success());
+    let dirty_suffix = if dirty_output.stdout.is_empty() {
+        ""
+    } else {
+        "-dirty"
+    };
+
     let is_release = std::env::var("PROFILE").unwrap_or_default() == "release";
+    let is_ci = std::env::var("CI").unwrap_or_default() == "true";
 
     let flecs_version = if is_release {
-        format!("{VERSION}-{CODENAME}-{git_sha}")
+        if is_ci {
+            format!("{VERSION}-{CODENAME}-{git_sha}{dirty_suffix}")
+        } else {
+            format!("{VERSION}-{CODENAME}-local-{git_sha}{dirty_suffix}")
+        }
     } else {
-        format!("{VERSION}-{CODENAME}-dev-{git_sha}")
+        format!("{VERSION}-{CODENAME}-next-dev-{git_sha}{dirty_suffix}")
     };
     println!("cargo:rustc-env=FLECS_VERSION={flecs_version}");
 
