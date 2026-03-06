@@ -495,7 +495,7 @@ pub fn test_lore(
 
 pub const MAX_SUPPORTED_APP_MANIFEST_VERSION: &str = "3.0.0";
 pub const API_VERSION: &str = env!("FLECS_API_VERSION");
-pub const CORE_VERSION: &str = concat!(env!("FLECS_VERSION"), "-", env!("FLECS_GIT_SHA"));
+pub const CORE_VERSION: &str = concat!(env!("FLECS_FULL_VERSION"), "-", env!("FLECS_GIT_SHA"));
 
 #[cfg(test)]
 mod tests {
