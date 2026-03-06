@@ -14,58 +14,82 @@
 
 cmake_minimum_required(VERSION 3.21)
 
-include(${CMAKE_SOURCE_DIR}/flecs-build/cmake/flecs-build.cmake)
+project(FLECS)
 
-project(
-    FLECS
-    VERSION 5.1.0
-    HOMEPAGE_URL https://flecs.tech
-    LANGUAGES CXX
+# read version from .cargo/config.toml (single source of truth)
+execute_process(
+    COMMAND tomlq -r ".env.FLECS_VERSION" ${CMAKE_SOURCE_DIR}/.cargo/config.toml
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    OUTPUT_VARIABLE FLECS_VERSION
 )
-set(CODENAME red-deer)
-
-# set version
-set(FLECS_VERSION_FULL "${PROJECT_VERSION}-${CODENAME}")
-if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+execute_process(
+    COMMAND tomlq -r ".env.FLECS_CODENAME" ${CMAKE_SOURCE_DIR}/.cargo/config.toml
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    OUTPUT_VARIABLE FLECS_CODENAME
+)
+if("${FLECS_VERSION}" STREQUAL "" OR "${FLECS_CODENAME}" STREQUAL "")
+    message(FATAL_ERROR "Could not determine FLECS version from .cargo/config.toml")
+endif()
+set(FLECS_VERSION_FULL "${FLECS_VERSION}-${FLECS_CODENAME}")
+if(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release")
     set(FLECS_VERSION_FULL "${FLECS_VERSION_FULL}-dev")
 endif()
+message(STATUS "FLECS version: ${FLECS_VERSION_FULL}")
 
-set(API_VERSION 2.0.0)
-add_definitions(-DFLECS_VERSION="${FLECS_VERSION_FULL}")
-add_definitions(-DFLECS_API_VERSION="${API_VERSION}")
-
-set(Rust_CARGO ${CMAKE_SOURCE_DIR}/auditable-cargo)
-
-include(FetchContent)
-
-FetchContent_Declare(
-        Corrosion
-        GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-        GIT_TAG b1fab721655c5c4b1b08a083d3cd29f163af75d0
-)
-
-if ("${ARCH}" STREQUAL "amd64")
-    set(Rust_CARGO_TARGET "x86_64-unknown-linux-gnu")
-elseif("${ARCH}" STREQUAL "arm64")
-    set(Rust_CARGO_TARGET "aarch64-unknown-linux-gnu")
+# detect or validate ARCH and set CARGO_TARGET
+if(NOT ARCH)
+    execute_process(
+        COMMAND uname -m
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        OUTPUT_VARIABLE MACHINE
+    )
+    if("${MACHINE}" MATCHES "x86_64")
+        set(ARCH amd64)
+        set(CARGO_TARGET "x86_64-unknown-linux-gnu")
+    elseif("${MACHINE}" MATCHES "aarch64")
+        set(ARCH arm64)
+        set(CARGO_TARGET "aarch64-unknown-linux-gnu")
+    else()
+        message(FATAL_ERROR "Could not determine architecture for ${MACHINE}")
+    endif()
+    message(STATUS "Detected target machine ${MACHINE}")
+else()
+    if("${ARCH}" STREQUAL "amd64")
+        set(CARGO_TARGET "x86_64-unknown-linux-gnu")
+    elseif("${ARCH}" STREQUAL "arm64")
+        set(CARGO_TARGET "aarch64-unknown-linux-gnu")
+    else()
+        message(FATAL_ERROR "Invalid target architecture ${ARCH} specified")
+    endif()
 endif()
 
-message(STATUS "Rust_CARGO_TARGET: ${Rust_CARGO_TARGET}")
+message(STATUS "ARCH: ${ARCH}, CARGO_TARGET: ${CARGO_TARGET}")
 
-# Set any global configuration variables such as `Rust_TOOLCHAIN` before this line!
-FetchContent_MakeAvailable(Corrosion)
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+    set(CARGO_PROFILE "release")
+    set(CARGO_PROFILE_ARG "--release")
+else()
+    set(CARGO_PROFILE "debug")
+    set(CARGO_PROFILE_ARG "")
+endif()
 
-# workaround for gcc-12 bug
-add_compile_options(-Wno-error=restrict)
+set(CARGO_TARGET_DIR "${CMAKE_BINARY_DIR}/cargo")
+set(FLECSD_BINARY "${CARGO_TARGET_DIR}/${CARGO_TARGET}/${CARGO_PROFILE}/flecsd")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-corrosion_import_crate(MANIFEST_PATH "${CMAKE_SOURCE_DIR}/Cargo.toml")
-
-add_custom_target(version
-    COMMAND echo "${FLECS_VERSION_FULL}"
+add_custom_target(flecsd_cargo ALL
+    COMMAND ${CMAKE_COMMAND} -E env CARGO_TARGET_DIR=${CARGO_TARGET_DIR}
+        ${CMAKE_SOURCE_DIR}/auditable-cargo build ${CARGO_PROFILE_ARG} --target ${CARGO_TARGET}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FLECSD_BINARY} ${CMAKE_BINARY_DIR}/flecsd
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    BYPRODUCTS ${CMAKE_BINARY_DIR}/flecsd
+    COMMENT "Building flecsd with cargo"
 )
 
 add_subdirectory(docker)
 
-include(flecs-rules)
+get_property(DOCKER_IMAGES GLOBAL PROPERTY DOCKER_IMAGES)
+add_custom_target(
+    docker
+    DEPENDS ${DOCKER_IMAGES}
+    COMMAND echo ${DOCKER_IMAGES}
+)
