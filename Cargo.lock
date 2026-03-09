@@ -2211,7 +2211,7 @@ dependencies = [
 [[package]]
 name = "net-spider"
 version = "0.1.0"
-source = "git+https://codeberg.org/flecs-tech/net-spider.git?rev=57999c8ad8bac26f88d71a45a904da43baa6c453#57999c8ad8bac26f88d71a45a904da43baa6c453"
+source = "git+https://codeberg.org/flecs-tech/net-spider.git?rev=1ec137d5fd983c4e0115555c1f40dae096245626#1ec137d5fd983c4e0115555c1f40dae096245626"
 dependencies = [
  "ipnet",
  "libc 1.0.0-alpha.2",
