@@ -8,24 +8,20 @@ RUN apt-get update && \
 
 ARG ARCH
 
-RUN mkdir -p /fs/usr/local/libexec/docker/cli-plugins
+RUN mkdir -p /fs/usr/local/bin
 RUN case "${ARCH}" in \
     "amd64") \
-    wget https://download.docker.com/linux/static/stable/x86_64/docker-28.1.1.tgz; \
-    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64; \
+    wget -O /fs/usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/v5.1.0/docker-compose-linux-x86_64 \
     ;; \
     "arm64") \
-    wget https://download.docker.com/linux/static/stable/aarch64/docker-28.1.1.tgz; \
-    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-aarch64; \
+    wget -O /fs/usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/v5.1.0/docker-compose-linux-aarch64 \
     ;; \
     *) \
     exit 1 \
     ;; \
     esac
 
-RUN chmod a+x /fs/usr/local/libexec/docker/cli-plugins/docker-compose
-
-RUN mkdir -p /fs/usr/local/bin && tar -C /fs/usr/local/bin --strip-components=1 -xf docker-*.tgz docker/docker
+RUN chmod a+x /fs/usr/local/bin/docker-compose
 
 FROM debian:bookworm-slim AS flecs
 

@@ -11,10 +11,10 @@ ARG ARCH
 RUN mkdir -p /fs/usr/local/libexec/docker/cli-plugins
 RUN case "${ARCH}" in \
     "amd64") \
-    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-x86_64; \
+    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v5.1.0/docker-compose-linux-x86_64 \
     ;; \
     "arm64") \
-    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v2.35.1/docker-compose-linux-aarch64; \
+    wget -O /fs/usr/local/libexec/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/v5.1.0/docker-compose-linux-aarch64 \
     ;; \
     *) \
     exit 1 \
