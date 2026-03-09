@@ -65,7 +65,9 @@ pub mod tar {
         R: Read,
         P: AsRef<Path>,
     {
-        tar::Archive::new(src).unpack(dst)?;
+        let mut archive = tar::Archive::new(src);
+        archive.set_preserve_ownerships(true);
+        archive.unpack(dst)?;
         Ok(())
     }
 
@@ -75,6 +77,7 @@ pub mod tar {
         P: AsRef<Path>,
     {
         let mut archive = tar::Archive::new(src);
+        archive.set_preserve_ownerships(true);
         let mut entries = archive.entries()?;
         match entries.next() {
             None => anyhow::bail!("No entry in archive present"),
