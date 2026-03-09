@@ -28,10 +28,11 @@ impl DockerCli {
     }
 
     fn command(&self) -> Command {
-        let mut command = Command::new("docker");
-        command
-            .arg("--host")
-            .arg(format!("unix://{}", self.socket_path.to_string_lossy()));
+        let mut command = Command::new("docker-compose");
+        command.env(
+            "DOCKER_HOST",
+            format!("unix://{}", self.socket_path.to_string_lossy()),
+        );
         command
     }
 
@@ -118,14 +119,7 @@ impl DockerCli {
         } else {
             None
         };
-        command.args([
-            "compose",
-            "--project-name",
-            project_name,
-            "--file",
-            "-",
-            "pull",
-        ]);
+        command.args(["--project-name", project_name, "--file", "-", "pull"]);
         let result = Self::spawn_printing_stdout(command, Some(compose)).await;
         if let Some(dir) = temp_config_dir {
             let _ = fs::remove_dir_all(dir).await;
@@ -141,7 +135,6 @@ impl DockerCli {
     ) -> Result<(), ExecuteCommandError> {
         let mut command = self.command();
         command.args([
-            "compose",
             "--project-name",
             project_name,
             "--project-directory",
@@ -160,14 +153,7 @@ impl DockerCli {
         compose: &T,
     ) -> Result<(), ExecuteCommandError> {
         let mut command = self.command();
-        command.args([
-            "compose",
-            "--project-name",
-            project_name,
-            "--file",
-            "-",
-            "stop",
-        ]);
+        command.args(["--project-name", project_name, "--file", "-", "stop"]);
         Self::spawn_printing_stdout(command, Some(compose)).await
     }
 
@@ -178,7 +164,6 @@ impl DockerCli {
     ) -> Result<(), ExecuteCommandError> {
         let mut command = self.command();
         command.args([
-            "compose",
             "--project-name",
             project_name,
             "--file",
@@ -196,7 +181,6 @@ impl DockerCli {
     ) -> Result<Vec<String>, ExecuteCommandError> {
         let mut command = self.command();
         command.args([
-            "compose",
             "--project-name",
             project_name,
             "--file",
@@ -216,14 +200,7 @@ impl DockerCli {
         compose: &T,
     ) -> Result<String, ExecuteCommandError> {
         let mut command = self.command();
-        command.args([
-            "compose",
-            "--project-name",
-            project_name,
-            "--file",
-            "-",
-            "logs",
-        ]);
+        command.args(["--project-name", project_name, "--file", "-", "logs"]);
         let stdout = Self::spawn_with_stdout(command, Some(compose)).await?;
         let stdout = String::from_utf8_lossy(&stdout);
         Ok(stdout.to_string())
